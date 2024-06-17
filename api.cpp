@@ -5,12 +5,15 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#define RELAY_PIN 0  // GPIO17
+#define RELAY_PIN 0       // GPIO17
+#define PROJECTOR_PIN 1   // GPIO18
 
 void setup() {
     wiringPiSetup();
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);  // Relay off
+    pinMode(PROJECTOR_PIN, OUTPUT);
+    digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
 }
 
 void handleRequest(int client_socket) {
@@ -22,12 +25,18 @@ void handleRequest(int client_socket) {
 
     const char* response;
     if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
-        if (strstr(buffer, "action=on") != NULL) {
+        if (strstr(buffer, "device=lamp&action=on") != NULL) {
             digitalWrite(RELAY_PIN, HIGH);  // Relay on
             std::cout << "Turning relay ON" << std::endl;
-        } else if (strstr(buffer, "action=off") != NULL) {
+        } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
             digitalWrite(RELAY_PIN, LOW);  // Relay off
             std::cout << "Turning relay OFF" << std::endl;
+        } else if (strstr(buffer, "device=projector&action=on") != NULL) {
+            digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
+            std::cout << "Turning projector ON" << std::endl;
+        } else if (strstr(buffer, "device=projector&action=off") != NULL) {
+            digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
+            std::cout << "Turning projector OFF" << std::endl;
         }
         response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
     } else {
