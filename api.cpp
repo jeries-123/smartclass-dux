@@ -4,12 +4,20 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
 
 #define RELAY_PIN 0       // GPIO17
 #define PROJECTOR_PIN 1   // GPIO18
+#define DHT_PIN 7         // GPIO4
+
+#define DHT_TYPE DHT11    // or DHT22
+
+DHT dht(DHT_PIN, DHT_TYPE);
 
 void setup() {
     wiringPiSetup();
+    dht.begin();
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);  // Relay off
     pinMode(PROJECTOR_PIN, OUTPUT);
@@ -39,6 +47,12 @@ void handleRequest(int client_socket) {
             std::cout << "Turning projector OFF" << std::endl;
         }
         response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
+    } else if (strncmp(buffer, "GET /temperature", 16) == 0) {
+        float temperature = dht.readTemperature();
+        float humidity = dht.readHumidity();
+        char temp_response[buffer_size];
+        snprintf(temp_response, buffer_size, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"temperature\":%.1f,\"humidity\":%.1f}", temperature, humidity);
+        response = temp_response;
     } else {
         response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
     }
