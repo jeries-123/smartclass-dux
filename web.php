@@ -1,17 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Lamp and Projector Control</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Classroom by Dux</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: ; /* Dark red */
+            color: #822433;
+        }
+        .header img {
+            height: 50px;
+            margin-right: 20px;
+        }
+        .header h1 {
+            margin: 0 auto;
+            font-size: 24px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        .component-box {
+            background-color: #822433; 
+            color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            flex: 1 1 calc(33% - 40px);
+            box-sizing: border-box;
+        }
+        .component-box h2 {
+            margin-top: 0;
+        }
+        .switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .switch input {
+            display: none;
+        }
+        .switch label {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch label input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        .switch input:checked + .slider {
+            background-color: #2196F3;
+        }
+        .button {
+            margin-top: 10px;
+            display: none;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #1e7eaa;
+        }
+    </style>
 </head>
 <body>
-    <h1>Control the Lamp and Projector</h1>
-    <button onclick="controlDevice('lamp', 'on')">Turn On Lamp</button>
-    <button onclick="controlDevice('lamp', 'off')">Turn Off Lamp</button>
-    <button onclick="controlDevice('projector', 'on')">Turn On Projector</button>
-    <button onclick="controlDevice('projector', 'off')">Turn Off Projector</button>
+    <div class="header">
+        <img src="assets/RCAIoT_logo.png" alt="Company Logo">
+        <h1>Smart Classroom by Dux</h1>
+    </div>
+    <div class="container">
+        <div class="component-box">
+            <h2>Lamp</h2>
+            <div class="switch">
+                <label>
+                    <input type="checkbox" onchange="controlDevice('lamp', this.checked ? 'on' : 'off')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="component-box">
+            <h2>Projector</h2>
+            <div class="switch">
+                <label>
+                    <input type="checkbox" onchange="controlDevice('projector', this.checked ? 'on' : 'off', this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button id="startSharingButton" class="button" onclick="startScreenSharing()">Start Sharing</button>
+        </div>
+        <div class="component-box">
+            <h2>AC</h2>
+            <div class="switch">
+                <label>
+                    <input type="checkbox" onchange="controlDevice('ac', this.checked ? 'on' : 'off')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="component-box">
+            <h2>Temperature</h2>
+            <div id="temperatureDisplay">Loading...</div>
+        </div>
+    </div>
 
     <script>
-        function controlDevice(device, action) {
+        function controlDevice(device, action, element) {
             fetch('http://10.102.248.25:5000/control', {
                 method: 'POST',
                 headers: {
@@ -29,15 +162,23 @@
                 if (data.status === 'success') {
                     alert(device.charAt(0).toUpperCase() + device.slice(1) + ' ' + action);
                     if (device === 'projector' && action === 'on') {
-                        startScreenSharing();
+                        document.getElementById('startSharingButton').style.display = 'block';
+                    } else if (device === 'projector' && action === 'off') {
+                        document.getElementById('startSharingButton').style.display = 'none';
                     }
                 } else {
                     alert('Error controlling the ' + device);
+                    if (element) {
+                        element.checked = !element.checked;  // revert the switch state if there's an error
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error controlling the ' + device);
+                if (element) {
+                    element.checked = !element.checked;  // revert the switch state if there's an error
+                }
             });
         }
 
@@ -73,6 +214,22 @@
                 alert('Error starting screen sharing');
             });
         }
+
+        function updateTemperature() {
+            fetch('http://10.102.248.25:5000/temperature')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('temperatureDisplay').textContent = data.temperature + '°C';
+            })
+            .catch(error => {
+                console.error('Error fetching temperature:', error);
+                document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
+            });
+        }
+
+        // Initial temperature load and periodic updates
+        updateTemperature();
+        setInterval(updateTemperature, 60000); // Update every minute
     </script>
 </body>
 </html>
