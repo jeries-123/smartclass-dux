@@ -4,8 +4,8 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
+#include "Adafruit_Python_DHT/Adafruit_DHT.h"
+
 
 #define RELAY_PIN 0       // GPIO17
 #define PROJECTOR_PIN 1   // GPIO18
