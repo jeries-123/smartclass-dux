@@ -4,7 +4,8 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <DHT.h>
+#include "/usr/local/include/Adafruit_DHT/DHT.h"
+
 
 #define RELAY_PIN 0       // GPIO17
 #define PROJECTOR_PIN 1   // GPIO18
