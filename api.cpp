@@ -1,13 +1,12 @@
-
-#include <DHT-sensor-library/DHT.h>
-
+#include "DHT.h"
 #include <wiringPi.h>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include <netinet/in.h>
+#include <netinet/in.h>test 5
 #include <unistd.h>
 #include "Adafruit_DHT.h"
+
 
 #define RELAY_PIN 17      // GPIO17 for lamp
 #define PROJECTOR_PIN 18  // GPIO18 for projector
