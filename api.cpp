@@ -4,7 +4,7 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
-#include "/usr/local/include/Adafruit_DHT/DHT.h"
+#include <DHT-sensor-library/DHT.h>
 
 
 #define RELAY_PIN 0       // GPIO17
