@@ -43,7 +43,7 @@ def handle_request(request):
         # Read humidity from sensor
         humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
         if humidity is not None and temperature is not None:
-            print(f"Temperature: {temperature} C, Humidity: {humidity}%")
+            print(f"Humidity: {humidity}%, Temperature: {temperature}C")
             response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"humidity\": {humidity}}}"
         else:
             print("Failed to retrieve sensor data")
