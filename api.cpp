@@ -4,7 +4,6 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <errno.h>
 
 #define RELAY_PIN 0       // GPIO17
 #define PROJECTOR_PIN 1   // GPIO18
@@ -18,52 +17,33 @@ void setup() {
 }
 
 void handleRequest(int client_socket) {
-    const int buffer_size = 8192;  // Increase buffer size
+    const int buffer_size = 1024;
     char buffer[buffer_size];
-    memset(buffer, 0, buffer_size);
-    int total_read = 0;
-    int read_size;
+    read(client_socket, buffer, buffer_size);
 
-    // Read request in a loop
-    while ((read_size = read(client_socket, buffer + total_read, buffer_size - total_read - 1)) > 0) {
-        total_read += read_size;
-        if (total_read >= buffer_size - 1) break; // Prevent buffer overflow
-    }
+    std::cout << "Received request: " << buffer << std::endl;
 
-    if (read_size < 0) {
-        std::cerr << "Error reading request: " << strerror(errno) << std::endl;
-        close(client_socket);
-        return;
-    }
-
-    if (total_read > 0) {
-        std::cout << "Received request: " << buffer << std::endl;
-
-        const char* response;
-        if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
-            if (strstr(buffer, "device=lamp&action=on") != NULL) {
-                digitalWrite(RELAY_PIN, HIGH);  // Relay on
-                std::cout << "Turning relay ON" << std::endl;
-            } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
-                digitalWrite(RELAY_PIN, LOW);  // Relay off
-                std::cout << "Turning relay OFF" << std::endl;
-            } else if (strstr(buffer, "device=projector&action=on") != NULL) {
-                digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
-                std::cout << "Turning projector ON" << std::endl;
-            } else if (strstr(buffer, "device=projector&action=off") != NULL) {
-                digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
-                std::cout << "Turning projector OFF" << std::endl;
-            }
-            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
-        } else {
-            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
+    const char* response;
+    if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
+        if (strstr(buffer, "device=lamp&action=on") != NULL) {
+            digitalWrite(RELAY_PIN, HIGH);  // Relay on
+            std::cout << "Turning relay ON" << std::endl;
+        } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
+            digitalWrite(RELAY_PIN, LOW);  // Relay off
+            std::cout << "Turning relay OFF" << std::endl;
+        } else if (strstr(buffer, "device=projector&action=on") != NULL) {
+            digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
+            std::cout << "Turning projector ON" << std::endl;
+        } else if (strstr(buffer, "device=projector&action=off") != NULL) {
+            digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
+            std::cout << "Turning projector OFF" << std::endl;
         }
-
-        write(client_socket, response, strlen(response));
+        response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
     } else {
-        std::cerr << "Received empty request or error reading request" << std::endl;
+        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
     }
 
+    write(client_socket, response, strlen(response));
     close(client_socket);
 }
 
@@ -76,12 +56,9 @@ int main() {
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0) {
-        std::cerr << "Error opening socket: " << strerror(errno) << std::endl;
+        std::cerr << "Error opening socket" << std::endl;
         return 1;
     }
-
-    int opt = 1;
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -89,8 +66,7 @@ int main() {
     server_addr.sin_port = htons(5000);
 
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        std::cerr << "Error binding socket: " << strerror(errno) << std::endl;
-        close(server_socket);
+        std::cerr << "Error binding socket" << std::endl;
         return 1;
     }
 
@@ -101,7 +77,7 @@ int main() {
     while (true) {
         int client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0) {
-            std::cerr << "Error accepting connection: " << strerror(errno) << std::endl;
+            std::cerr << "Error accepting connection" << std::endl;
             continue;
         }
         handleRequest(client_socket);
