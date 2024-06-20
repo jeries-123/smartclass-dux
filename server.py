@@ -18,23 +18,36 @@ def handle_request(client_socket):
     print("Received request:", request)
 
     response = ""
-    if "POST /control" in request:
-        # Handle control requests for lamp and projector
-        # (same as before)
-    elif "GET /temperature" in request:
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"temperature\":" + str(temperature) + "}"
-        else:
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read temperature\"}"
-    elif "GET /humidity" in request:
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"humidity\":" + str(humidity) + "}"
-        else:
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read humidity\"}"
+if "POST /control" in request:
+    # Handle control requests for lamp and projector
+    if "device=lamp&action=on" in request:
+        digitalWrite(RELAY_PIN, HIGH)  # Relay on
+        print("Turning relay ON")
+    elif "device=lamp&action=off" in request:
+        digitalWrite(RELAY_PIN, LOW)  # Relay off
+        print("Turning relay OFF")
+    elif "device=projector&action=on" in request:
+        digitalWrite(PROJECTOR_PIN, HIGH)  # Projector on
+        print("Turning projector ON")
+    elif "device=projector&action=off" in request:
+        digitalWrite(PROJECTOR_PIN, LOW)  # Projector off
+        print("Turning projector OFF")
+    response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
+elif "GET /temperature" in request:
+    temperature = dht.readTemperature()
+    if not isnan(temperature):
+        response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{{\"temperature\":{temperature}}}"
     else:
-        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}"
+        response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read temperature\"}"
+elif "GET /humidity" in request:
+    humidity = dht.readHumidity()
+    if not isnan(humidity):
+        response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{{\"humidity\":{humidity}}}"
+    else:
+        response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read humidity\"}"
+else:
+    response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}"
+
 
     client_socket.sendall(response.encode())
     client_socket.close()
