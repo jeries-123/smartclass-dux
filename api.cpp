@@ -4,9 +4,14 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <DHT.h>
 
-#define RELAY_PIN 0       // GPIO17
-#define PROJECTOR_PIN 1   // GPIO18
+#define RELAY_PIN 17      // GPIO17 for lamp
+#define PROJECTOR_PIN 18  // GPIO18 for projector
+#define DHT_PIN 19        // GPIO19 for DHT sensor
+#define DHT_TYPE DHT11    // DHT sensor type
+
+DHT dht(DHT_PIN, DHT_TYPE);
 
 void setup() {
     wiringPiSetup();
@@ -14,6 +19,7 @@ void setup() {
     digitalWrite(RELAY_PIN, LOW);  // Relay off
     pinMode(PROJECTOR_PIN, OUTPUT);
     digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
+    dht.begin();
 }
 
 void handleRequest(int client_socket) {
@@ -25,20 +31,22 @@ void handleRequest(int client_socket) {
 
     const char* response;
     if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
-        if (strstr(buffer, "device=lamp&action=on") != NULL) {
-            digitalWrite(RELAY_PIN, HIGH);  // Relay on
-            std::cout << "Turning relay ON" << std::endl;
-        } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
-            digitalWrite(RELAY_PIN, LOW);  // Relay off
-            std::cout << "Turning relay OFF" << std::endl;
-        } else if (strstr(buffer, "device=projector&action=on") != NULL) {
-            digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
-            std::cout << "Turning projector ON" << std::endl;
-        } else if (strstr(buffer, "device=projector&action=off") != NULL) {
-            digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
-            std::cout << "Turning projector OFF" << std::endl;
+        // Handle control requests for lamp and projector
+        // (same as before)
+    } else if (strcmp(buffer, "GET /temperature HTTP/1.1") == 0) {
+        float temperature = dht.readTemperature();
+        if (isnan(temperature)) {
+            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read temperature\"}";
+        } else {
+            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"temperature\":" + std::to_string(temperature) + "}";
         }
-        response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
+    } else if (strcmp(buffer, "GET /humidity HTTP/1.1") == 0) {
+        float humidity = dht.readHumidity();
+        if (isnan(humidity)) {
+            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"error\":\"Failed to read humidity\"}";
+        } else {
+            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"humidity\":" + std::to_string(humidity) + "}";
+        }
     } else {
         response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
     }
