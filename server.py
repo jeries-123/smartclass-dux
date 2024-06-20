@@ -43,26 +43,27 @@ def handle_request(request):
 
     return response
 
-# Setup server socket
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(('localhost', 5000))
-server_socket.listen(5)
+try:
+    # Setup server socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('0.0.0.0', 5000))  # Bind to all network interfaces
+    server_socket.listen(5)
 
-print("Server running on port 5000")
+    print("Server running on port 5000")
 
-# Main server loop
-while True:
-    client_socket, addr = server_socket.accept()
-    request = client_socket.recv(1024).decode('utf-8')
-    print("Received request:", request)
+    # Main server loop
+    while True:
+        client_socket, addr = server_socket.accept()
+        request = client_socket.recv(1024).decode('utf-8')
+        print("Received request:", request)
 
-    response = handle_request(request)
+        response = handle_request(request)
 
-    client_socket.sendall(response.encode('utf-8'))
-    client_socket.close()
+        client_socket.sendall(response.encode('utf-8'))
+        client_socket.close()
+finally:
+    # Clean up GPIO
+    GPIO.cleanup()
 
-# Clean up GPIO
-GPIO.cleanup()
-
-# Close server socket
-server_socket.close()
+    # Close server socket
+    server_socket.close()
