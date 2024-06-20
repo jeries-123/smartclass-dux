@@ -1,5 +1,5 @@
 import Adafruit_DHT
-import platform_detect
+import time
 
 DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 27
