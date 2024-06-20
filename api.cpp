@@ -17,33 +17,39 @@ void setup() {
 }
 
 void handleRequest(int client_socket) {
-    const int buffer_size = 1024;
+    const int buffer_size = 2048;
     char buffer[buffer_size];
-    read(client_socket, buffer, buffer_size);
+    memset(buffer, 0, buffer_size);
+    int read_size = read(client_socket, buffer, buffer_size - 1);
 
-    std::cout << "Received request: " << buffer << std::endl;
+    if (read_size > 0) {
+        std::cout << "Received request: " << buffer << std::endl;
 
-    const char* response;
-    if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
-        if (strstr(buffer, "device=lamp&action=on") != NULL) {
-            digitalWrite(RELAY_PIN, HIGH);  // Relay on
-            std::cout << "Turning relay ON" << std::endl;
-        } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
-            digitalWrite(RELAY_PIN, LOW);  // Relay off
-            std::cout << "Turning relay OFF" << std::endl;
-        } else if (strstr(buffer, "device=projector&action=on") != NULL) {
-            digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
-            std::cout << "Turning projector ON" << std::endl;
-        } else if (strstr(buffer, "device=projector&action=off") != NULL) {
-            digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
-            std::cout << "Turning projector OFF" << std::endl;
+        const char* response;
+        if (strncmp(buffer, "POST /control HTTP", 18) == 0) {
+            if (strstr(buffer, "device=lamp&action=on") != NULL) {
+                digitalWrite(RELAY_PIN, HIGH);  // Relay on
+                std::cout << "Turning relay ON" << std::endl;
+            } else if (strstr(buffer, "device=lamp&action=off") != NULL) {
+                digitalWrite(RELAY_PIN, LOW);  // Relay off
+                std::cout << "Turning relay OFF" << std::endl;
+            } else if (strstr(buffer, "device=projector&action=on") != NULL) {
+                digitalWrite(PROJECTOR_PIN, HIGH);  // Projector on
+                std::cout << "Turning projector ON" << std::endl;
+            } else if (strstr(buffer, "device=projector&action=off") != NULL) {
+                digitalWrite(PROJECTOR_PIN, LOW);  // Projector off
+                std::cout << "Turning projector OFF" << std::endl;
+            }
+            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
+        } else {
+            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
         }
-        response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
+
+        write(client_socket, response, strlen(response));
     } else {
-        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"error\"}";
+        std::cerr << "Error reading request" << std::endl;
     }
 
-    write(client_socket, response, strlen(response));
     close(client_socket);
 }
 
@@ -67,6 +73,7 @@ int main() {
 
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         std::cerr << "Error binding socket" << std::endl;
+        close(server_socket);
         return 1;
     }
 

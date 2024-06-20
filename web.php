@@ -144,27 +144,67 @@
     </div>
 
     <script>
-        function controlDevice(device, action, element) {
-            fetch('http://10.102.248.25:5000/control', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: 'device=' + device + '&action=' + action
+       function controlDevice(device, action, element) {
+    if (window.fetch) {
+        fetch('http://10.102.248.25:5000/control', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                'device': device,
+                'action': action
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert(device.charAt(0).toUpperCase() + device.slice(1) + ' ' + action);
+                if (device === 'projector' && action === 'on') {
+                    document.getElementById('startSharingButton').style.display = 'block';
+                } else if (device === 'projector' && action === 'off') {
+                    document.getElementById('startSharingButton').style.display = 'none';
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    alert(device.charAt(0).toUpperCase() + device.slice(1) + ' ' + action);
-                    if (device === 'projector' && action === 'on') {
-                        document.getElementById('startSharingButton').style.display = 'block';
-                    } else if (device === 'projector' && action === 'off') {
-                        document.getElementById('startSharingButton').style.display = 'none';
+            } else {
+                alert('Error controlling the ' + device);
+                if (element) {
+                    element.checked = !element.checked;  // revert the switch state if there's an error
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error controlling the ' + device);
+            if (element) {
+                element.checked = !element.checked;  // revert the switch state if there's an error
+            }
+        });
+    } else {
+        // Fallback for browsers that do not support fetch
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://10.102.248.25:5000/control', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data.status === 'success') {
+                        alert(device.charAt(0).toUpperCase() + device.slice(1) + ' ' + action);
+                        if (device === 'projector' && action === 'on') {
+                            document.getElementById('startSharingButton').style.display = 'block';
+                        } else if (device === 'projector' && action === 'off') {
+                            document.getElementById('startSharingButton').style.display = 'none';
+                        }
+                    } else {
+                        alert('Error controlling the ' + device);
+                        if (element) {
+                            element.checked = !element.checked;  // revert the switch state if there's an error
+                        }
                     }
                 } else {
                     alert('Error controlling the ' + device);
@@ -172,15 +212,11 @@
                         element.checked = !element.checked;  // revert the switch state if there's an error
                     }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error controlling the ' + device);
-                if (element) {
-                    element.checked = !element.checked;  // revert the switch state if there's an error
-                }
-            });
-        }
+            }
+        };
+        xhr.send('device=' + device + '&action=' + action);
+    }
+}
 
         function startScreenSharing() {
             navigator.mediaDevices.getDisplayMedia({ video: true })
