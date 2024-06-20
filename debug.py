@@ -1,13 +1,13 @@
 import Adafruit_DHT
+import time
 
-DHT_PIN = 27
-DHT_TYPE = Adafruit_DHT.DHT11
+DHT_SENSOR = Adafruit_DHT.DHT11
+DHT_PIN = 19
 
-try:
-    humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN, platform='Raspberry Pi')
+while True:
+    humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
     if humidity is not None and temperature is not None:
-        print(f"Temperature: {temperature} C, Humidity: {humidity}%")
+        print(f"Temperature: {temperature}°C, Humidity: {humidity}%")
     else:
         print("Failed to retrieve sensor data")
-except Exception as e:
-    print(f"Error reading sensor data: {e}")
+    time.sleep(2)
