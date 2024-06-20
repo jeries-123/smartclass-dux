@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #define RELAY_PIN 0       // GPIO17
-#define PROJECTOR_PIN 1   // GPIO18
+#define PROJECTOR_PIN 2   // GPIO27 (for example)
 
 void setup() {
     wiringPiSetup();
@@ -47,6 +47,23 @@ void handleRequest(int client_socket) {
     close(client_socket);
 }
 
+void handleScreenSharing(int client_socket) {
+    // Read the signaling message from the client
+    const int buffer_size = 1024;
+    char buffer[buffer_size];
+    read(client_socket, buffer, buffer_size);
+
+    // Handle the signaling message
+    // Here you would typically forward the message to the peer
+    // For simplicity, we'll just print the message
+    std::cout << "Received signaling message: " << buffer << std::endl;
+
+    // Send a response back to the client
+    const char* response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}";
+    write(client_socket, response, strlen(response));
+    close(client_socket);
+}
+
 int main() {
     setup();
 
@@ -80,7 +97,16 @@ int main() {
             std::cerr << "Error accepting connection" << std::endl;
             continue;
         }
-        handleRequest(client_socket);
+
+        const int buffer_size = 1024;
+        char buffer[buffer_size];
+        read(client_socket, buffer, buffer_size);
+
+        if (strncmp(buffer, "POST /screen HTTP", 17) == 0) {
+            handleScreenSharing(client_socket);
+        } else {
+            handleRequest(client_socket);
+        }
     }
 
     close(server_socket);
