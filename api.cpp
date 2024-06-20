@@ -4,9 +4,7 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
+#include <errno.h>
 
 #define RELAY_PIN 0       // GPIO17
 #define PROJECTOR_PIN 1   // GPIO18
@@ -20,22 +18,22 @@ void setup() {
 }
 
 void handleRequest(int client_socket) {
-    const int buffer_size = 2048;
+    const int buffer_size = 8192;  // Increase buffer size
     char buffer[buffer_size];
     memset(buffer, 0, buffer_size);
     int total_read = 0;
+    int read_size;
 
-    while (total_read < buffer_size - 1) {
-        int read_size = read(client_socket, buffer + total_read, buffer_size - 1 - total_read);
-        if (read_size < 0) {
-            std::cerr << "Error reading request: " << strerror(errno) << std::endl;
-            close(client_socket);
-            return;
-        }
-        if (read_size == 0) {
-            break;
-        }
+    // Read request in a loop
+    while ((read_size = read(client_socket, buffer + total_read, buffer_size - total_read - 1)) > 0) {
         total_read += read_size;
+        if (total_read >= buffer_size - 1) break; // Prevent buffer overflow
+    }
+
+    if (read_size < 0) {
+        std::cerr << "Error reading request: " << strerror(errno) << std::endl;
+        close(client_socket);
+        return;
     }
 
     if (total_read > 0) {
