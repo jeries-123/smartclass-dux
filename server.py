@@ -2,9 +2,9 @@ import Adafruit_DHT
 import RPi.GPIO as GPIO
 import socket
 
-RELAY_PIN = 17      # GPIO17 for lamp
+RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = 27       # GPIO19 for DHT sensor
+DHT_PIN = 17       # GPIO19 for DHT sensor
 DHT_TYPE = Adafruit_DHT.DHT11    # DHT sensor type
 
 GPIO.setmode(GPIO.BCM)
