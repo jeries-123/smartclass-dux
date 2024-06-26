@@ -4,7 +4,7 @@ import socket
 
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = 17       # GPIO19 for DHT sensor
+DHT_PIN = 17        # GPIO17 for DHT sensor
 DHT_TYPE = Adafruit_DHT.DHT11    # DHT sensor type
 
 GPIO.setmode(GPIO.BCM)
@@ -64,13 +64,18 @@ try:
     # Main server loop
     while True:
         client_socket, addr = server_socket.accept()
-        request = client_socket.recv(1024).decode('utf-8')
-        print("Received request:", request)
+        try:
+            request = client_socket.recv(1024).decode('utf-8')
+            print("Received request:", request)
 
-        response = handle_request(request)
+            response = handle_request(request)
 
-        client_socket.sendall(response.encode('utf-8'))
-        client_socket.close()
+            client_socket.sendall(response.encode('utf-8'))
+        except Exception as e:
+            print(f"Error handling request: {e}")
+        finally:
+            client_socket.close()
+
 finally:
     # Clean up GPIO
     GPIO.cleanup()
