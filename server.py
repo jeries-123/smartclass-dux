@@ -87,9 +87,13 @@ try:
         finally:
             ssl_socket.close()
 
+except Exception as e:
+    print(f"Exception during server setup: {e}")
+
 finally:
     # Clean up GPIO
     GPIO.cleanup()
 
-    # Close server socket
-    server_socket.close()
+    # Close server socket if it exists
+    if 'server_socket' in locals():
+        server_socket.close()
