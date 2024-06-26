@@ -61,7 +61,7 @@ def handle_request(request):
 try:
     # Load SSL certificate and key
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_context.load_cert_chain(certfile='cert.pem', keyfile='key.pem')
+    ssl_context.load_cert_chain(certfile='server.crt', keyfile='server.key')
 
     # Setup server socket with SSL
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
