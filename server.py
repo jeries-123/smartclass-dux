@@ -15,41 +15,45 @@ GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
 
 def handle_request(request):
     response = ""
-    if "POST /control" in request:
-        # Handle control requests for lamp and projector
-        if "device=lamp&action=on" in request:
-            GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-            print("Turning relay ON")
-        elif "device=lamp&action=off" in request:
-            GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-            print("Turning relay OFF")
-        elif "device=projector&action=on" in request:
-            GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-            print("Turning projector ON")
-        elif "device=projector&action=off" in request:
-            GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-            print("Turning projector OFF")
-        response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
-    elif "GET /temperature" in request:
-        # Read temperature from sensor
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            print(f"Temperature: {temperature} C, Humidity: {humidity}%")
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"temperature\": {temperature}}}"
+    try:
+        if "POST /control" in request:
+            # Handle control requests for lamp and projector
+            if "device=lamp&action=on" in request:
+                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
+                print("Turning relay ON")
+            elif "device=lamp&action=off" in request:
+                GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+                print("Turning relay OFF")
+            elif "device=projector&action=on" in request:
+                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
+                print("Turning projector ON")
+            elif "device=projector&action=off" in request:
+                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+                print("Turning projector OFF")
+            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
+        elif "GET /temperature" in request:
+            # Read temperature from sensor
+            humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
+            if humidity is not None and temperature is not None:
+                print(f"Temperature: {temperature} C, Humidity: {humidity}%")
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"temperature\": {temperature}}}"
+            else:
+                print("Failed to retrieve sensor data")
+                response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
+        elif "GET /humidity" in request:
+            # Read humidity from sensor
+            humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
+            if humidity is not None and temperature is not None:
+                print(f"Humidity: {humidity}%, Temperature: {temperature}C")
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"humidity\": {humidity}}}"
+            else:
+                print("Failed to retrieve sensor data")
+                response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
         else:
-            print("Failed to retrieve sensor data")
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
-    elif "GET /humidity" in request:
-        # Read humidity from sensor
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            print(f"Humidity: {humidity}%, Temperature: {temperature}C")
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"humidity\": {humidity}}}"
-        else:
-            print("Failed to retrieve sensor data")
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
-    else:
-        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
+            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
+    except Exception as e:
+        print(f"Exception while handling request: {e}")
+        response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nInternal Server Error"
 
     return response
 
@@ -65,10 +69,10 @@ try:
     while True:
         client_socket, addr = server_socket.accept()
         try:
-            request = client_socket.recv(1024).decode('utf-8')
+            request = client_socket.recv(1024)
             print("Received request:", request)
 
-            response = handle_request(request)
+            response = handle_request(request.decode('utf-8'))
 
             client_socket.sendall(response.encode('utf-8'))
         except Exception as e:
