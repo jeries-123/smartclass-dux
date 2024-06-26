@@ -1,6 +1,7 @@
 import Adafruit_DHT
 import RPi.GPIO as GPIO
 import socket
+import ssl
 
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
@@ -58,27 +59,33 @@ def handle_request(request):
     return response
 
 try:
-    # Setup server socket
+    # Load SSL certificate and key
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(certfile='cert.pem', keyfile='key.pem')
+
+    # Setup server socket with SSL
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('0.0.0.0', 5000))  # Bind to all network interfaces
     server_socket.listen(5)
 
-    print("Server running on port 5000")
+    print("Server running on port 5000 with HTTPS")
 
     # Main server loop
     while True:
         client_socket, addr = server_socket.accept()
         try:
-            request = client_socket.recv(1024)
+            # Wrap client socket with SSL
+            ssl_socket = ssl_context.wrap_socket(client_socket, server_side=True)
+            request = ssl_socket.recv(1024)
             print("Received request:", request)
 
             response = handle_request(request.decode('utf-8'))
 
-            client_socket.sendall(response.encode('utf-8'))
+            ssl_socket.sendall(response.encode('utf-8'))
         except Exception as e:
             print(f"Error handling request: {e}")
         finally:
-            client_socket.close()
+            ssl_socket.close()
 
 finally:
     # Clean up GPIO
