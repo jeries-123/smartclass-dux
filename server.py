@@ -61,7 +61,14 @@ def handle_request(request):
 try:
     # Load SSL certificate and key
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_context.load_cert_chain(certfile='server.crt', keyfile='server.key')
+    
+    # Attempt to load the certificate and key
+    try:
+        ssl_context.load_cert_chain(certfile='server.crt', keyfile='server.key')
+        print("Loaded SSL certificate and key successfully.")
+    except ssl.SSLError as e:
+        print(f"Error loading SSL certificate/key: {e}")
+        raise e  # Re-raise the exception to handle it later
 
     # Setup server socket with SSL
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
