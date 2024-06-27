@@ -47,7 +47,7 @@ try:
     # Create SSL context and load certificates
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
-    ssl_context.load_verify_locations(cafile='/home/pi/Desktop/smartclass-dux/ca_bundle.crt')
+    ssl_context.load_verify_locations(cafile='/home/pi/Desktop/smartclass-dux/server_fullchain.crt')
     print("Loaded SSL certificate, key, and CA bundle successfully.")
 
     # Setup server socket with SSL
