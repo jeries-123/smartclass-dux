@@ -53,6 +53,7 @@ try:
     # Main server loop
     while True:
         client_socket, addr = server_socket.accept()
+        ssl_socket = None
         try:
             # Wrap client socket with SSL
             ssl_socket = ssl_context.wrap_socket(client_socket, server_side=True)
@@ -62,10 +63,13 @@ try:
             response = handle_request(request.decode('utf-8'))
 
             ssl_socket.sendall(response.encode('utf-8'))
+        except ssl.SSLError as e:
+            print(f"SSL Error: {e}")
         except Exception as e:
             print(f"Error handling request: {e}")
         finally:
-            ssl_socket.close()
+            if ssl_socket:
+                ssl_socket.close()
 
 except FileNotFoundError as e:
     print(f"Error: File not found - {e}")
