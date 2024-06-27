@@ -42,10 +42,10 @@ def control():
 
         return jsonify({"status": "success"}), 200
 
-if __name__ == '__main__':
-    # Create SSL context and load certificates
-    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
+# SSL Context and Server Initialization
+ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
 
-    # Run the Flask app with SSL
+if __name__ == '__main__':
+    # Run Flask app with SSL
     app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context)
