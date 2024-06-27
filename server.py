@@ -41,7 +41,7 @@ try:
     # Create SSL context and load certificates
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
-    print("Loaded SSL certificate and key successfully.")
+    ssl_context.verify_mode = ssl.CERT_NONE  # Change this based on your security requirements
 
     # Setup server socket with SSL
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
