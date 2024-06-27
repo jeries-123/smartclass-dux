@@ -2,31 +2,34 @@ import RPi.GPIO as GPIO
 import socket
 import ssl
 
+# GPIO pin configurations
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
 
+# Setup GPIO pins
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
-GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off initially
 GPIO.setup(PROJECTOR_PIN, GPIO.OUT)
-GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off initially
 
+# Function to handle HTTP requests
 def handle_request(request):
     response = ""
     try:
         if "POST /control" in request:
             # Handle control requests for lamp and projector
             if "device=lamp&action=on" in request:
-                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
+                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Turn on relay
                 print("Turning relay ON")
             elif "device=lamp&action=off" in request:
-                GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+                GPIO.output(RELAY_PIN, GPIO.LOW)  # Turn off relay
                 print("Turning relay OFF")
             elif "device=projector&action=on" in request:
-                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
+                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Turn on projector
                 print("Turning projector ON")
             elif "device=projector&action=off" in request:
-                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Turn off projector
                 print("Turning projector OFF")
             response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
         else:
@@ -37,23 +40,17 @@ def handle_request(request):
 
     return response
 
+# Main server setup
 try:
     # Create SSL context and load certificates
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
-  print("Loaded SSL certificate and key successfully.")
-except FileNotFoundError as e:
-    print(f"Error: File not found - {e}")
-except ssl.SSLError as e:
-    print(f"Error loading SSL certificate/key: {e}")
-    raise e  # Re-raise the exception to handle it later
-except Exception as e:
-    print(f"Exception during SSL context setup: {e}")
+    print("Loaded SSL certificate and key successfully.")
+
     # Setup server socket with SSL
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('0.0.0.0', 5000))  # Bind to all network interfaces
     server_socket.listen(5)
-
     print("Server running on port 5000 with HTTPS")
 
     # Main server loop
