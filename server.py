@@ -40,11 +40,17 @@ def handle_request(request):
 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 
 try:
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_context.load_cert_chain(certfile='/home/pi/Desktop/smartclass-dux/server.crt', keyfile='/home/pi/Desktop/smartclass-dux/server.key')
     print("Loaded SSL certificate and key successfully.")
+except FileNotFoundError as e:
+    print(f"Error: File not found - {e}")
 except ssl.SSLError as e:
     print(f"Error loading SSL certificate/key: {e}")
     raise e  # Re-raise the exception to handle it later
+except Exception as e:
+    print(f"Exception during SSL context setup: {e}")
+
 
 
     # Setup server socket with SSL
