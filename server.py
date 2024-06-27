@@ -1,12 +1,9 @@
-import Adafruit_DHT
 import RPi.GPIO as GPIO
 import socket
 import ssl
 
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = 17        # GPIO17 for DHT sensor
-DHT_TYPE = Adafruit_DHT.DHT11    # DHT sensor type
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -32,24 +29,6 @@ def handle_request(request):
                 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
                 print("Turning projector OFF")
             response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
-        elif "GET /temperature" in request:
-            # Read temperature from sensor
-            humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-            if humidity is not None and temperature is not None:
-                print(f"Temperature: {temperature} C, Humidity: {humidity}%")
-                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"temperature\": {temperature}}}"
-            else:
-                print("Failed to retrieve sensor data")
-                response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
-        elif "GET /humidity" in request:
-            # Read humidity from sensor
-            humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-            if humidity is not None and temperature is not None:
-                print(f"Humidity: {humidity}%, Temperature: {temperature}C")
-                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"humidity\": {humidity}}}"
-            else:
-                print("Failed to retrieve sensor data")
-                response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
         else:
             response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
     except Exception as e:
@@ -64,7 +43,7 @@ try:
     
     # Attempt to load the certificate and key
     try:
-        ssl_context.load_cert_chain(certfile='server.crt', keyfile='server.key')
+        ssl_context.load_cert_chain(certfile='/Desktop/smartclass-dux/server.crt', keyfile='/Desktop/smartclass-dux/server.key')
         print("Loaded SSL certificate and key successfully.")
     except ssl.SSLError as e:
         print(f"Error loading SSL certificate/key: {e}")
