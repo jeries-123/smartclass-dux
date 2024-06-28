@@ -39,7 +39,8 @@ def read_dht_sensor():
             sensor_data = {"temperature": temperature_c, "humidity": humidity}
             
             # Send data to the server
-            response = requests.post(data_url, data=sensor_data)
+            response.headers.add('Access-control-Allow-Origin')
+                        response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
                 print(f"Data sent successfully: {sensor_data}")
             else:
