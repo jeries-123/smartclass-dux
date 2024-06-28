@@ -44,7 +44,7 @@ def control():
 
 # SSL Context and Server Initialization
 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server_fullchain.crt', keyfile='/home/pi/smartclass-dux/server.key')
+ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server.crt', keyfile='/home/pi/smartclass-dux/server.key')
 
 
 if __name__ == '__main__':
