@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import socket
 import ssl
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -13,7 +14,7 @@ PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
-CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
+cors = CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -23,6 +24,10 @@ GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
 
 # Initialize the DHT sensor
 dht_sensor = adafruit_dht.DHT11(DHT_PIN)
+
+# Variables to hold sensor data
+sensor_data = {"temperature": None, "humidity": None}
+data_url = "https://temp.aiiot.website/data.php"
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
@@ -34,6 +39,7 @@ def read_dht_sensor():
             sensor_data = {"temperature": temperature_c, "humidity": humidity}
             
             # Send data to the server
+        
             response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
                 print(f"Data sent successfully: {sensor_data}")
@@ -78,19 +84,14 @@ def control():
 
         return jsonify({"status": "success"}), 200
 
-@app.route('/sensor_data', methods=['GET'])
+@app.route('/sensor', methods=['GET'])
 def get_sensor_data():
-    try:
-        with open('/path/to/sensor_data.txt', 'r') as file:
-            lines = file.readlines()
-            data = [json.loads(line) for line in lines]
-            return jsonify(data), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify(sensor_data), 200
 
 # SSL Context and Server Initialization
 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server.crt', keyfile='/home/pi/smartclass-dux/server.key')
 
 if __name__ == '__main__':
+    # Run Flask app with SSL
     app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context)
