@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-import socket
 from flask import Flask, request, jsonify
 import board
 import adafruit_dht
@@ -24,7 +23,7 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
-data_url = "https://temp.aiiot.website/data.php"
+data_url = "http://temp.aiiot.website/data.php"  # Changed to HTTP
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
