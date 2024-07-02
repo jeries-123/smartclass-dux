@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import socket
 from flask import Flask, request, jsonify
 import board
 import adafruit_dht
@@ -23,7 +24,7 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
-data_url = "http://temp.aiiot.website/data.php"
+data_url = "https://temp.aiiot.website/data.php"
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
@@ -55,7 +56,7 @@ sensor_thread.start()
 
 @app.route('/control', methods=['POST'])
 def control():
-    data = request.form
+    data = request.json
     device = data.get('device')
     action = data.get('action')
 
@@ -79,6 +80,17 @@ def control():
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
     return jsonify(sensor_data), 200
+
+# Proxy endpoint to handle requests from temp.aiiot.website to Raspberry Pi server
+@app.route('/proxy/control', methods=['POST'])
+def proxy_control():
+    data = request.json
+    device = data.get('device')
+    action = data.get('action')
+    
+    # Forward the request to your Raspberry Pi server
+    response = requests.post('http://10.51.0.167:5000/control', json={'device': device, 'action': action})
+    return jsonify(response.json()), response.status_code
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
