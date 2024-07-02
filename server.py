@@ -1,5 +1,8 @@
 import RPi.GPIO as GPIO
+import socket
+import ssl
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import board
 import adafruit_dht
 import threading
@@ -11,6 +14,7 @@ PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -23,7 +27,7 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
-data_url = "http://temp.aiiot.website/data.php"  # Changed to HTTP
+data_url = "https://temp.aiiot.website/data.php"
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
@@ -35,6 +39,7 @@ def read_dht_sensor():
             sensor_data = {"temperature": temperature_c, "humidity": humidity}
             
             # Send data to the server
+        
             response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
                 print(f"Data sent successfully: {sensor_data}")
@@ -53,43 +58,40 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
-@app.route('/control', methods=['POST'])
+@app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
-    data = request.json
-    device = data.get('device')
-    action = data.get('action')
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "success"}), 200
+    elif request.method == 'POST':
+        data = request.form
+        device = data.get('device')
+        action = data.get('action')
 
-    if device == 'lamp':
-        if action == 'on':
-            GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-            print("Turning relay ON")
-        elif action == 'off':
-            GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-            print("Turning relay OFF")
-    elif device == 'projector':
-        if action == 'on':
-            GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-            print("Turning projector ON")
-        elif action == 'off':
-            GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-            print("Turning projector OFF")
+        if device == 'lamp':
+            if action == 'on':
+                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
+                print("Turning relay ON")
+            elif action == 'off':
+                GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+                print("Turning relay OFF")
+        elif device == 'projector':
+            if action == 'on':
+                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
+                print("Turning projector ON")
+            elif action == 'off':
+                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+                print("Turning projector OFF")
 
-    return jsonify({"status": "success"}), 200
+        return jsonify({"status": "success"}), 200
 
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
     return jsonify(sensor_data), 200
 
-# Proxy endpoint to handle requests from temp.aiiot.website to Raspberry Pi server
-@app.route('/proxy/control', methods=['POST'])
-def proxy_control():
-    data = request.json
-    device = data.get('device')
-    action = data.get('action')
-    
-    # Forward the request to your Raspberry Pi server
-    response = requests.post('http://10.51.0.167:5000/control', json={'device': device, 'action': action})
-    return jsonify(response.json()), response.status_code
+# SSL Context and Server Initialization
+ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server.crt', keyfile='/home/pi/smartclass-dux/server.key')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Run Flask app with SSL
+    app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context)
