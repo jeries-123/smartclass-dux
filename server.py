@@ -1,11 +1,20 @@
-import Adafruit_DHT
 import RPi.GPIO as GPIO
 import socket
+import ssl
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import board
+import adafruit_dht
+import threading
+import time
+import requests
 
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = 19       # GPIO19 for DHT sensor
-DHT_TYPE = Adafruit_DHT.DHT11    # DHT sensor type
+DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
+
+app = Flask(__name__)
+cors = CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -13,73 +22,76 @@ GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
 GPIO.setup(PROJECTOR_PIN, GPIO.OUT)
 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
 
-def handle_request(request):
-    response = ""
-    if "POST /control" in request:
-        # Handle control requests for lamp and projector
-        if "device=lamp&action=on" in request:
-            GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-            print("Turning relay ON")
-        elif "device=lamp&action=off" in request:
-            GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-            print("Turning relay OFF")
-        elif "device=projector&action=on" in request:
-            GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-            print("Turning projector ON")
-        elif "device=projector&action=off" in request:
-            GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-            print("Turning projector OFF")
-        response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\n\r\n{\"status\":\"success\"}"
-    elif "GET /temperature" in request:
-        # Read temperature from sensor
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            print(f"Temperature: {temperature} C, Humidity: {humidity}%")
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"temperature\": {temperature}}}"
-        else:
-            print("Failed to retrieve sensor data")
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
-    elif "GET /humidity" in request:
-        # Read humidity from sensor
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
-        if humidity is not None and temperature is not None:
-            print(f"Humidity: {humidity}%, Temperature: {temperature}C")
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"humidity\": {humidity}}}"
-        else:
-            print("Failed to retrieve sensor data")
-            response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to retrieve sensor data"
-    else:
-        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
+# Initialize the DHT sensor
+dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
-    return response
+# Variables to hold sensor data
+sensor_data = {"temperature": None, "humidity": None}
+data_url = "https://temp.aiiot.website/data.php"
 
-try:
-    # Setup server socket
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('0.0.0.0', 5000))  # Bind to all network interfaces
-    server_socket.listen(5)
-
-    print("Server running on port 5000")
-
-    # Main server loop
+# Function to read the DHT sensor and send data to the server
+def read_dht_sensor():
+    global sensor_data
     while True:
-        client_socket, addr = server_socket.accept()
         try:
-            request = client_socket.recv(1024).decode('utf-8')
-            print("Received request:", request)
+            temperature_c = dht_sensor.temperature
+            humidity = dht_sensor.humidity
+            sensor_data = {"temperature": temperature_c, "humidity": humidity}
+            
+            # Send data to the server
+        
+            response = requests.post(data_url, data=sensor_data)
+            if response.status_code == 200:
+                print(f"Data sent successfully: {sensor_data}")
+            else:
+                print(f"Failed to send data: {response.status_code}")
+                
+        except RuntimeError as error:
+            print(f"Runtime error: {error}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        
+        time.sleep(10)
 
-            response = handle_request(request)
+# Start a background thread to read the sensor and send data
+sensor_thread = threading.Thread(target=read_dht_sensor)
+sensor_thread.daemon = True
+sensor_thread.start()
 
-            client_socket.sendall(response.encode('utf-8'))
-        except UnicodeDecodeError as e:
-            print(f"Unicode decode error: {e}")
-            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
-            client_socket.sendall(response.encode('utf-8'))
-        finally:
-            client_socket.close()
-finally:
-    # Clean up GPIO
-    GPIO.cleanup()
+@app.route('/control', methods=['POST', 'OPTIONS'])
+def control():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "success"}), 200
+    elif request.method == 'POST':
+        data = request.form
+        device = data.get('device')
+        action = data.get('action')
 
-    # Close server socket
-    server_socket.close()
+        if device == 'lamp':
+            if action == 'on':
+                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
+                print("Turning relay ON")
+            elif action == 'off':
+                GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+                print("Turning relay OFF")
+        elif device == 'projector':
+            if action == 'on':
+                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
+                print("Turning projector ON")
+            elif action == 'off':
+                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+                print("Turning projector OFF")
+
+        return jsonify({"status": "success"}), 200
+
+@app.route('/sensor', methods=['GET'])
+def get_sensor_data():
+    return jsonify(sensor_data), 200
+
+# SSL Context and Server Initialization
+ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server.crt', keyfile='/home/pi/smartclass-dux/server.key')
+
+if __name__ == '__main__':
+    # Run Flask app with SSL
+    app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context)
