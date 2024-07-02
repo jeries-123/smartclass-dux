@@ -1,6 +1,5 @@
 import RPi.GPIO as GPIO
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import board
 import adafruit_dht
 import threading
@@ -12,7 +11,6 @@ PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -25,7 +23,7 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
-data_url = "http://temp.aiiot.website/data.php"  # Using HTTP instead of HTTPS
+data_url = "http://temp.aiiot.website/data.php"
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
@@ -55,31 +53,28 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
-@app.route('/control', methods=['POST', 'OPTIONS'])
+@app.route('/control', methods=['POST'])
 def control():
-    if request.method == 'OPTIONS':
-        return jsonify({"status": "success"}), 200
-    elif request.method == 'POST':
-        data = request.form
-        device = data.get('device')
-        action = data.get('action')
+    data = request.form
+    device = data.get('device')
+    action = data.get('action')
 
-        if device == 'lamp':
-            if action == 'on':
-                GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-                print("Turning relay ON")
-            elif action == 'off':
-                GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-                print("Turning relay OFF")
-        elif device == 'projector':
-            if action == 'on':
-                GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-                print("Turning projector ON")
-            elif action == 'off':
-                GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-                print("Turning projector OFF")
+    if device == 'lamp':
+        if action == 'on':
+            GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
+            print("Turning relay ON")
+        elif action == 'off':
+            GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
+            print("Turning relay OFF")
+    elif device == 'projector':
+        if action == 'on':
+            GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
+            print("Turning projector ON")
+        elif action == 'off':
+            GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
+            print("Turning projector OFF")
 
-        return jsonify({"status": "success"}), 200
+    return jsonify({"status": "success"}), 200
 
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
