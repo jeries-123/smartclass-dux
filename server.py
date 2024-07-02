@@ -1,6 +1,4 @@
 import RPi.GPIO as GPIO
-import socket
-import ssl
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import board
@@ -27,7 +25,7 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
-data_url = "https://temp.aiiot.website/data.php"
+data_url = "http://temp.aiiot.website/data.php"  # Using HTTP instead of HTTPS
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
@@ -39,7 +37,6 @@ def read_dht_sensor():
             sensor_data = {"temperature": temperature_c, "humidity": humidity}
             
             # Send data to the server
-        
             response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
                 print(f"Data sent successfully: {sensor_data}")
@@ -88,10 +85,5 @@ def control():
 def get_sensor_data():
     return jsonify(sensor_data), 200
 
-# SSL Context and Server Initialization
-ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-ssl_context.load_cert_chain(certfile='/home/pi/smartclass-dux/server.crt', keyfile='/home/pi/smartclass-dux/server.key')
-
 if __name__ == '__main__':
-    # Run Flask app with SSL
-    app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context)
+    app.run(host='0.0.0.0', port=5000)
