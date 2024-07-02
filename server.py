@@ -64,13 +64,19 @@ try:
     # Main server loop
     while True:
         client_socket, addr = server_socket.accept()
-        request = client_socket.recv(1024).decode('utf-8')
-        print("Received request:", request)
+        try:
+            request = client_socket.recv(1024).decode('utf-8')
+            print("Received request:", request)
 
-        response = handle_request(request)
+            response = handle_request(request)
 
-        client_socket.sendall(response.encode('utf-8'))
-        client_socket.close()
+            client_socket.sendall(response.encode('utf-8'))
+        except UnicodeDecodeError as e:
+            print(f"Unicode decode error: {e}")
+            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
+            client_socket.sendall(response.encode('utf-8'))
+        finally:
+            client_socket.close()
 finally:
     # Clean up GPIO
     GPIO.cleanup()
