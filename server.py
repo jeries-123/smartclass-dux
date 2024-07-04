@@ -51,7 +51,7 @@ def read_dht_sensor():
         except Exception as e:
             print(f"An error occurred: {e}")
         
-        time.sleep(10)
+        time.sleep(1000)
 
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
