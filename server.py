@@ -6,10 +6,14 @@ import adafruit_dht
 import threading
 import time
 import requests
+import logging
 
 RELAY_PIN = 27      # GPIO17 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all origins
@@ -38,21 +42,22 @@ def read_dht_sensor():
             
             # Send data to the server
             response = requests.post(data_url, data=sensor_data)
-            if response.status_code == 200:
-                print(f"Data sent successfully: {sensor_data}")
-            else:
-                print(f"Failed to send data: {response.status_code}")
+            response.raise_for_status()  # Raise an error for non-200 responses
+            
+            logging.info(f"Data sent successfully: {sensor_data}")
                 
-        except RuntimeError as error:
-            print(f"Runtime error: {error}")
+        except requests.exceptions.RequestException as req_err:
+            logging.error(f"Request error: {req_err}")
+        except RuntimeError as rt_err:
+            logging.error(f"Runtime error: {rt_err}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
         
-        time.sleep(100)
+        time.sleep(100)  # Adjust sleep time as needed
 
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
-sensor_thread.daemon = True
+sensor_thread.daemon = True  # Set the thread as daemon to automatically terminate with main process
 sensor_thread.start()
 
 @app.route('/control', methods=['POST', 'OPTIONS'])
@@ -67,17 +72,17 @@ def control():
         if device == 'lamp':
             if action == 'on':
                 GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-                print("Turning relay ON")
+                logging.info("Turning relay ON")
             elif action == 'off':
                 GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-                print("Turning relay OFF")
+                logging.info("Turning relay OFF")
         elif device == 'projector':
             if action == 'on':
                 GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-                print("Turning projector ON")
+                logging.info("Turning projector ON")
             elif action == 'off':
                 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-                print("Turning projector OFF")
+                logging.info("Turning projector OFF")
 
         return jsonify({"status": "success"}), 200
 
@@ -87,4 +92,4 @@ def get_sensor_data():
 
 if __name__ == '__main__':
     # Run Flask app
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
