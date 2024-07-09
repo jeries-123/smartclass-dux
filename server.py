@@ -7,7 +7,7 @@ import threading
 import time
 import requests
 
-RELAY_PIN = 27      # GPIO17 for lamp
+RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
