@@ -12,7 +12,7 @@ PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/control": {"origins": "https://temp.aiiot.website"}})
+CORS(app)  # Enable CORS for all origins
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
