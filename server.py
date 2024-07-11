@@ -39,14 +39,14 @@ def read_dht_sensor():
             # Send data to the server
             response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
-                app.logger.info(f"Data sent successfully: {sensor_data}")
+                print(f"Data sent successfully: {sensor_data}")
             else:
-                app.logger.error(f"Failed to send data: {response.status_code}")
+                print(f"Failed to send data: {response.status_code}")
                 
         except RuntimeError as error:
-            app.logger.error(f"Runtime error: {error}")
+            print(f"Runtime error: {error}")
         except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
+            print(f"An error occurred: {e}")
         
         time.sleep(100)
 
@@ -54,11 +54,6 @@ def read_dht_sensor():
 sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
-
-@app.before_first_request
-def initialize_sensor_thread():
-    global sensor_thread
-    sensor_thread.start()
 
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
@@ -72,17 +67,17 @@ def control():
         if device == 'lamp':
             if action == 'on':
                 GPIO.output(RELAY_PIN, GPIO.HIGH)  # Relay on
-                app.logger.info("Turning relay ON")
+                print("Turning relay ON")
             elif action == 'off':
                 GPIO.output(RELAY_PIN, GPIO.LOW)  # Relay off
-                app.logger.info("Turning relay OFF")
+                print("Turning relay OFF")
         elif device == 'projector':
             if action == 'on':
                 GPIO.output(PROJECTOR_PIN, GPIO.HIGH)  # Projector on
-                app.logger.info("Turning projector ON")
+                print("Turning projector ON")
             elif action == 'off':
                 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-                app.logger.info("Turning projector OFF")
+                print("Turning projector OFF")
 
         return jsonify({"status": "success"}), 200
 
@@ -90,5 +85,14 @@ def control():
 def get_sensor_data():
     return jsonify(sensor_data), 200
 
+@app.before_first_request
+def initialize():
+    global sensor_thread
+    # Start a background thread to read the sensor and send data
+    sensor_thread = threading.Thread(target=read_dht_sensor)
+    sensor_thread.daemon = True
+    sensor_thread.start()
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # Run Flask app
+    app.run(host='0.0.0.0', port=5000)
