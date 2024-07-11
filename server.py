@@ -85,14 +85,6 @@ def control():
 def get_sensor_data():
     return jsonify(sensor_data), 200
 
-@app.before_first_request
-def initialize():
-    global sensor_thread
-    # Start a background thread to read the sensor and send data
-    sensor_thread = threading.Thread(target=read_dht_sensor)
-    sensor_thread.daemon = True
-    sensor_thread.start()
-
 if __name__ == '__main__':
     # Run Flask app
     app.run(host='0.0.0.0', port=5000)
