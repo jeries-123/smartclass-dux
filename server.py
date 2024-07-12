@@ -53,7 +53,6 @@ def read_dht_sensor():
         time.sleep(10)
 
 # Function to start localtunnel and send the domain to the server
-# Function to start localtunnel and send the domain to the server
 def start_localtunnel():
     command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -85,10 +84,8 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
-# Start localtunnel and send the domain
-localtunnel_thread = threading.Thread(target=start_localtunnel)
-localtunnel_thread.daemon = True
-localtunnel_thread.start()
+# Start localtunnel and send the domain (run once when the server starts)
+start_localtunnel()
 
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
