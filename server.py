@@ -50,11 +50,10 @@ def read_dht_sensor():
         except Exception as e:
             print(f"An error occurred: {e}")
         
-        time.sleep(100)
+        time.sleep(10)
 
 # Function to start localtunnel and send the domain to the server
 def start_localtunnel():
-    global sensor_data
     command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = result.stdout + result.stderr
@@ -115,5 +114,4 @@ def get_sensor_data():
     return jsonify(sensor_data), 200
 
 if __name__ == '__main__':
-    # Run Flask app using Gunicorn
     app.run(host='0.0.0.0', port=5000)
