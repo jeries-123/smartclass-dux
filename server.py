@@ -65,13 +65,20 @@ def start_localtunnel():
         print(f"Localtunnel URL: {localtunnel_url}")
 
         # Send the domain to the PHP server
-        response = requests.post(data_url, data={"domain": localtunnel_url})
-        if response.status_code == 200:
-            print(f"Domain sent successfully: {localtunnel_url}")
-        else:
-            print(f"Failed to send domain: {response.status_code}")
+        send_domain_to_server(localtunnel_url)
     else:
         print("Failed to find localtunnel URL")
+
+# Function to send the domain to the PHP server
+def send_domain_to_server(domain):
+    try:
+        response = requests.post(data_url, data={"domain": domain})
+        if response.status_code == 200:
+            print(f"Domain sent successfully: {domain}")
+        else:
+            print(f"Failed to send domain: {response.status_code}")
+    except Exception as e:
+        print(f"Error sending domain: {e}")
 
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
