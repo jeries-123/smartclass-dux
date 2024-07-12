@@ -11,7 +11,7 @@ import re
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
+DHT_PIN = board.D4   # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all origins
@@ -64,12 +64,13 @@ def start_localtunnel():
         localtunnel_url = match.group(0)
         print(f"Localtunnel URL: {localtunnel_url}")
 
-        # Send the domain to the PHP server
+        # Send the domain to the PHP server only once
         send_domain_to_server(localtunnel_url)
+
     else:
         print("Failed to find localtunnel URL")
 
-# Function to send the domain to the PHP server
+# Function to send domain to PHP server
 def send_domain_to_server(domain):
     try:
         response = requests.post(data_url, data={"domain": domain})
