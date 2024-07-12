@@ -29,9 +29,6 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 sensor_data = {"temperature": None, "humidity": None}
 data_url = "https://temp.aiiot.website/data.php"
 
-# Variable to hold the localtunnel URL
-localtunnel_url = None
-
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
     global sensor_data
@@ -57,11 +54,6 @@ def read_dht_sensor():
 
 # Function to start localtunnel and send the domain to the server
 def start_localtunnel():
-    global localtunnel_url
-    if localtunnel_url:
-        print(f"Localtunnel URL already set: {localtunnel_url}")
-        return
-    
     command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = result.stdout + result.stderr
@@ -93,8 +85,10 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
-# Start localtunnel and send the domain (if not already set)
-start_localtunnel()
+# Start localtunnel and send the domain
+localtunnel_thread = threading.Thread(target=start_localtunnel)
+localtunnel_thread.daemon = True
+localtunnel_thread.start()
 
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
