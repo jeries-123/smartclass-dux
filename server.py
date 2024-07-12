@@ -9,7 +9,7 @@ import requests
 import subprocess
 import re
 
-RELAY_PIN = 27      # GPIO27 for lamp
+RELAY_PIN = 27      # GPIO27 for lamp1
 PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
