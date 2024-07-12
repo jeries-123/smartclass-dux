@@ -6,6 +6,7 @@ import adafruit_dht
 import threading
 import time
 import requests
+from pyngrok import ngrok
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
@@ -26,17 +27,39 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
 data_url = "https://temp.aiiot.website/data.php"
+localtunnel_url = None
+
+# Function to create and manage localtunnel
+def start_localtunnel():
+    global localtunnel_url
+    while True:
+        try:
+            tunnel = ngrok.connect(5000, bind_tls=True)
+            localtunnel_url = tunnel.public_url
+            print(f"Localtunnel URL: {localtunnel_url}")
+            time.sleep(600)  # Refresh every 10 minutes
+        except Exception as e:
+            print(f"Error creating localtunnel: {e}")
+            time.sleep(60)  # Retry after 1 minute if failed
+
+# Start a background thread for localtunnel
+localtunnel_thread = threading.Thread(target=start_localtunnel)
+localtunnel_thread.daemon = True
+localtunnel_thread.start()
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
-    global sensor_data
+    global sensor_data, localtunnel_url
     while True:
         try:
             temperature_c = dht_sensor.temperature
             humidity = dht_sensor.humidity
             sensor_data = {"temperature": temperature_c, "humidity": humidity}
             
-            # Send data to the server
+            # Send data to the server along with localtunnel URL
+            if localtunnel_url:
+                sensor_data['localtunnel_url'] = localtunnel_url
+
             response = requests.post(data_url, data=sensor_data)
             if response.status_code == 200:
                 print(f"Data sent successfully: {sensor_data}")
