@@ -11,7 +11,7 @@ import re
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = board.D4   # GPIO4 for DHT11 sensor
+DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all origins
@@ -57,29 +57,24 @@ def start_localtunnel():
     command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = result.stdout + result.stderr
-
+    
+    # Log the complete output of the lt command
+    print(f"Localtunnel command output: {output}")
+    
     # Extract the localtunnel URL using regex
     match = re.search(r'https://[a-zA-Z0-9-]+\.loca\.lt', output)
     if match:
         localtunnel_url = match.group(0)
         print(f"Localtunnel URL: {localtunnel_url}")
 
-        # Send the domain to the PHP server only once
-        send_domain_to_server(localtunnel_url)
-
-    else:
-        print("Failed to find localtunnel URL")
-
-# Function to send domain to PHP server
-def send_domain_to_server(domain):
-    try:
-        response = requests.post(data_url, data={"domain": domain})
+        # Send the domain to the PHP server
+        response = requests.post(data_url, data={"domain": localtunnel_url})
         if response.status_code == 200:
-            print(f"Domain sent successfully: {domain}")
+            print(f"Domain sent successfully: {localtunnel_url}")
         else:
             print(f"Failed to send domain: {response.status_code}")
-    except Exception as e:
-        print(f"Error sending domain: {e}")
+    else:
+        print("Failed to find localtunnel URL")
 
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
