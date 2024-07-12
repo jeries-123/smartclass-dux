@@ -54,30 +54,34 @@ def read_dht_sensor():
 
 # Function to start localtunnel and send the domain to the server
 def start_localtunnel():
-    command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    output = result.stdout + result.stderr
+    try:
+        command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        output = result.stdout + result.stderr
+        
+        # Log the complete output of the lt command
+        print(f"Localtunnel command output: {output}")
+        
+        # Extract the localtunnel URL using regex
+        match = re.search(r'https://[a-zA-Z0-9-]+\.loca\.lt', output)
+        if match:
+            localtunnel_url = match.group(0)
+            print(f"Localtunnel URL: {localtunnel_url}")
     
-    # Log the complete output of the lt command
-    print(f"Localtunnel command output: {output}")
+            try:
+                # Send the domain to the PHP server
+                response = requests.post(data_url, data={"domain": localtunnel_url})
+                if response.status_code == 200:
+                    print(f"Domain sent successfully: {localtunnel_url}")
+                else:
+                    print(f"Failed to send domain: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"An error occurred while sending domain: {e}")
+        else:
+            print("Failed to find localtunnel URL")
     
-    # Extract the localtunnel URL using regex
-    match = re.search(r'https://[a-zA-Z0-9-]+\.loca\.lt', output)
-    if match:
-        localtunnel_url = match.group(0)
-        print(f"Localtunnel URL: {localtunnel_url}")
-
-        try:
-            # Send the domain to the PHP server
-            response = requests.post(data_url, data={"domain": localtunnel_url})
-            if response.status_code == 200:
-                print(f"Domain sent successfully: {localtunnel_url}")
-            else:
-                print(f"Failed to send domain: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred while sending domain: {e}")
-    else:
-        print("Failed to find localtunnel URL")
+    except subprocess.CalledProcessError as e:
+        print(f"Error running localtunnel command: {e}")
 
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
@@ -109,7 +113,6 @@ def control():
                 print("Turning projector ON")
             elif action == 'off':
                 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-                print("Turning projector OFF")
 
         return jsonify({"status": "success"}), 200
 
