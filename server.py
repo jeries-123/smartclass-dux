@@ -6,11 +6,11 @@ import adafruit_dht
 import threading
 import time
 import requests
-from pyngrok import ngrok
+import subprocess  # Import subprocess module for executing shell commands
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
+DHT_PIN = board.D4   # GPIO4 for DHT11 sensor
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all origins
@@ -24,47 +24,39 @@ GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
 # Initialize the DHT sensor
 dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
-# Variables to hold sensor data
-sensor_data = {"temperature": None, "humidity": None}
-data_url = "https://temp.aiiot.website/data.php"
-localtunnel_url = None
-
-# Function to create and manage localtunnel
-def start_localtunnel():
-    global localtunnel_url
-    while True:
-        try:
-            tunnel = ngrok.connect(5000, bind_tls=True)
-            localtunnel_url = tunnel.public_url
-            print(f"Localtunnel URL: {localtunnel_url}")
-            time.sleep(600)  # Refresh every 10 minutes
-        except Exception as e:
-            print(f"Error creating localtunnel: {e}")
-            time.sleep(60)  # Retry after 1 minute if failed
-
-# Start a background thread for localtunnel
-localtunnel_thread = threading.Thread(target=start_localtunnel)
-localtunnel_thread.daemon = True
-localtunnel_thread.start()
+# Function to get localtunnel URL
+def get_localtunnel_url():
+    try:
+        result = subprocess.run(['lt', '--port', '5000', '--print-requests'], capture_output=True, text=True)
+        localtunnel_url = result.stdout.strip()
+        return localtunnel_url
+    except Exception as e:
+        print(f"Error getting localtunnel URL: {e}")
+        return None
 
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
-    global sensor_data, localtunnel_url
     while True:
         try:
             temperature_c = dht_sensor.temperature
             humidity = dht_sensor.humidity
-            sensor_data = {"temperature": temperature_c, "humidity": humidity}
+            localtunnel_url = get_localtunnel_url()
             
-            # Send data to the server along with localtunnel URL
             if localtunnel_url:
-                sensor_data['localtunnel_url'] = localtunnel_url
-
-            response = requests.post(data_url, data=sensor_data)
-            if response.status_code == 200:
-                print(f"Data sent successfully: {sensor_data}")
+                sensor_data = {
+                    "temperature": temperature_c,
+                    "humidity": humidity,
+                    "localtunnel_url": localtunnel_url
+                }
+                
+                # Send data to the server
+                response = requests.post("https://temp.aiiot.website/data.php", data=sensor_data)
+                if response.status_code == 200:
+                    print(f"Data sent successfully: {sensor_data}")
+                else:
+                    print(f"Failed to send data: {response.status_code}")
             else:
-                print(f"Failed to send data: {response.status_code}")
+                print("Failed to get localtunnel URL.")
                 
         except RuntimeError as error:
             print(f"Runtime error: {error}")
@@ -106,7 +98,9 @@ def control():
 
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
-    return jsonify(sensor_data), 200
+    temperature_c = dht_sensor.temperature
+    humidity = dht_sensor.humidity
+    return jsonify({"temperature": temperature_c, "humidity": humidity}), 200
 
 if __name__ == '__main__':
     # Run Flask app
