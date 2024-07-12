@@ -28,32 +28,11 @@ dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 # Variables to hold sensor data
 sensor_data = {"temperature": None, "humidity": None}
 data_url = "https://temp.aiiot.website/data.php"
-
-# Function to read the DHT sensor and send data to the server
-def read_dht_sensor():
-    global sensor_data
-    while True:
-        try:
-            temperature_c = dht_sensor.temperature
-            humidity = dht_sensor.humidity
-            sensor_data = {"temperature": temperature_c, "humidity": humidity}
-            
-            # Send data to the server
-            response = requests.post(data_url, data=sensor_data)
-            if response.status_code == 200:
-                print(f"Data sent successfully: {sensor_data}")
-            else:
-                print(f"Failed to send data: {response.status_code}")
-                
-        except RuntimeError as error:
-            print(f"Runtime error: {error}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        
-        time.sleep(10)
+localtunnel_url = None
 
 # Function to start localtunnel and send the domain to the server
-def start_localtunnel():
+def start_localtunnel_and_send_domain():
+    global localtunnel_url
     try:
         command = ['lt', '--port', '5000', '--subdomain', 'saltunnelme']
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -83,13 +62,40 @@ def start_localtunnel():
     except subprocess.CalledProcessError as e:
         print(f"Error running localtunnel command: {e}")
 
+# Start localtunnel and send the domain (run once when the server starts)
+start_localtunnel_and_send_domain()
+
+# Start a background thread to read the sensor and send data
+def read_dht_sensor():
+    global sensor_data
+    while True:
+        try:
+            temperature_c = dht_sensor.temperature
+            humidity = dht_sensor.humidity
+            sensor_data = {"temperature": temperature_c, "humidity": humidity}
+            
+            # Send data to the server
+            if localtunnel_url:
+                sensor_data["domain"] = localtunnel_url  # Include the domain in sensor data
+                response = requests.post(data_url, data=sensor_data)
+                if response.status_code == 200:
+                    print(f"Data sent successfully: {sensor_data}")
+                else:
+                    print(f"Failed to send data: {response.status_code}")
+            else:
+                print("Localtunnel URL is not available yet.")
+                
+        except RuntimeError as error:
+            print(f"Runtime error: {error}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        
+        time.sleep(10)
+
 # Start a background thread to read the sensor and send data
 sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
-
-# Start localtunnel and send the domain (run once when the server starts)
-start_localtunnel()
 
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
