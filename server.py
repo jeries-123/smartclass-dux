@@ -10,14 +10,20 @@ from flask_socketio import SocketIO, emit
 
 # Initialize the Flask app and SocketIO
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins=[
+    "https://smartclass.dux.aiiot.center", 
+    "http://smartclass.dux.aiiot.center", 
+    "https://www.smartclass.dux.aiiot.center", 
+    "http://www.smartclass.dux.aiiot.center"
+])
 
 # Enable CORS for specific origins
 CORS(app, resources={r"/*": {"origins": [
     "https://smartclass.dux.aiiot.center", 
     "http://smartclass.dux.aiiot.center", 
     "https://www.smartclass.dux.aiiot.center", 
-    "http://www.smartclass.dux.aiiot.center"]}})
+    "http://www.smartclass.dux.aiiot.center"
+]}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
