@@ -8,22 +8,16 @@ import time
 import requests
 from flask_socketio import SocketIO, emit
 
-# Initialize the Flask app and SocketIO
+# Initialize the Flask app and SocketIO with eventlet support for WebSockets
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins=[
-    "https://smartclass.dux.aiiot.center", 
-    "http://smartclass.dux.aiiot.center", 
-    "https://www.smartclass.dux.aiiot.center", 
-    "http://www.smartclass.dux.aiiot.center"
-])
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Enable CORS for specific origins
 CORS(app, resources={r"/*": {"origins": [
     "https://smartclass.dux.aiiot.center", 
     "http://smartclass.dux.aiiot.center", 
     "https://www.smartclass.dux.aiiot.center", 
-    "http://www.smartclass.dux.aiiot.center"
-]}})
+    "http://www.smartclass.dux.aiiot.center"]}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
@@ -91,6 +85,6 @@ def control():
 
     return jsonify({"status": "success"}), 200
 
-# Start the SocketIO server
+# Start the SocketIO server with eventlet support
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000)
