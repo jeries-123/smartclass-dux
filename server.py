@@ -7,8 +7,10 @@ import threading
 import time
 import requests
 from flask_socketio import SocketIO
+import eventlet
+import eventlet.wsgi
 
-# Initialize the Flask app
+# Initialize the Flask app and SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -112,7 +114,7 @@ def control():
 
         return jsonify({"status": "success"}), 200
 
-# Sensor data route
+# Sensor data route//
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
     try:
@@ -126,6 +128,6 @@ def get_sensor_data():
     except Exception as e:
         return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
+# Use eventlet to run the Flask app
 if __name__ == '__main__':
-    # Run Flask app on all interfaces (0.0.0.0) and port 5000
-    socketio.run(app, host='0.0.0.0', port=5000)
+    eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
