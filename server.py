@@ -5,8 +5,7 @@ import board
 import adafruit_dht
 import threading
 import time
-import requests
-import subprocess  # Import subprocess module for executing shell commands
+import requests  # Removed subprocess, no need for localtunnel
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
@@ -24,39 +23,25 @@ GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
 # Initialize the DHT sensor
 dht_sensor = adafruit_dht.DHT11(DHT_PIN)
 
-# Function to get localtunnel URL
-def get_localtunnel_url():
-    try:
-        result = subprocess.run(['lt', '--port', '5000', '--print-requests'], capture_output=True, text=True)
-        localtunnel_url = result.stdout.strip()
-        return localtunnel_url
-    except Exception as e:
-        print(f"Error getting localtunnel URL: {e}")
-        return None
-
 # Function to read the DHT sensor and send data to the server
 def read_dht_sensor():
     while True:
         try:
             temperature_c = dht_sensor.temperature
             humidity = dht_sensor.humidity
-            localtunnel_url = get_localtunnel_url()
             
-            if localtunnel_url:
-                sensor_data = {
-                    "temperature": temperature_c,
-                    "humidity": humidity,
-                    "localtunnel_url": localtunnel_url
-                }
-                
-                # Send data to the server
-                response = requests.post("https://smartclass.dux.aiiot.center/data.php", data=sensor_data)
-                if response.status_code == 200:
-                    print(f"Data sent successfully: {sensor_data}")
-                else:
-                    print(f"Failed to send data: {response.status_code}")
+            # Prepare sensor data
+            sensor_data = {
+                "temperature": temperature_c,
+                "humidity": humidity,
+            }
+            
+            # Send data to the server
+            response = requests.post("https://smartclass.dux.aiiot.center/data.php", data=sensor_data)
+            if response.status_code == 200:
+                print(f"Data sent successfully: {sensor_data}")
             else:
-                print("Failed to get localtunnel URL.")
+                print(f"Failed to send data: {response.status_code}")
                 
         except RuntimeError as error:
             print(f"Runtime error: {error}")
