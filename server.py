@@ -11,7 +11,7 @@ import requests
 app = Flask(__name__)
 
 # Enable CORS for the specific origin
-CORS(app, resources={r"/*": {"origins": "https://smartclass.dux.aiiot.center"}})
+CORS(app, resources={r"/*": {"origins": ["https://smartclass.dux.aiiot.center", "http://smartclass.dux.aiiot.center", "https://www.smartclass.dux.aiiot.center","http://www.smartclass.dux.aiiot.center"]}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
