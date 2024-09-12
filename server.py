@@ -50,7 +50,7 @@ def read_dht_sensor():
                 }
                 
                 # Send data to the server
-                response = requests.post("https://temp.aiiot.website/data.php", data=sensor_data)
+                response = requests.post("https://smartclass.dux.aiiot.center/data.php", data=sensor_data)
                 if response.status_code == 200:
                     print(f"Data sent successfully: {sensor_data}")
                 else:
