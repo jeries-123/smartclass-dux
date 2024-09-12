@@ -6,9 +6,11 @@ import adafruit_dht
 import threading
 import time
 import requests
+from flask_socketio import SocketIO
 
-# Initialize the Flask app//
+# Initialize the Flask app
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Enable CORS for specific origins and allow the bypass-tunnel-reminder header
 CORS(app, resources={r"/*": {"origins": ["https://smartclass.dux.aiiot.center", 
@@ -62,6 +64,23 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
+# WebRTC signaling: Handle WebSocket connections for screen sharing
+@socketio.on('offer')
+def handle_offer(data):
+    # Relay offer to the Raspberry Pi or other client
+    socketio.emit('offer', data, broadcast=True, include_self=False)
+
+@socketio.on('answer')
+def handle_answer(data):
+    # Relay answer back to the browser (screen sharer)
+    socketio.emit('answer', data, broadcast=True, include_self=False)
+
+@socketio.on('candidate')
+def handle_candidate(data):
+    # Relay ICE candidate information
+    socketio.emit('candidate', data, broadcast=True, include_self=False)
+
+# GPIO control route
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
     if request.method == 'OPTIONS':
@@ -93,6 +112,7 @@ def control():
 
         return jsonify({"status": "success"}), 200
 
+# Sensor data route
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
     try:
@@ -108,4 +128,4 @@ def get_sensor_data():
 
 if __name__ == '__main__':
     # Run Flask app on all interfaces (0.0.0.0) and port 5000
-    app.run(host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
