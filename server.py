@@ -6,14 +6,16 @@ import adafruit_dht
 import threading
 import time
 import requests
+
+# Initialize the Flask app
+app = Flask(__name__)
+
+# Enable CORS for the specific origin
 CORS(app, resources={r"/*": {"origins": "https://smartclass.dux.aiiot.center"}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
 DHT_PIN = board.D4   # GPIO4 for DHT11 sensor
-
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all origins
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
