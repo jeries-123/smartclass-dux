@@ -6,6 +6,7 @@ import adafruit_dht
 import threading
 import time
 import requests
+CORS(app, resources={r"/*": {"origins": "https://smartclass.dux.aiiot.center"}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
