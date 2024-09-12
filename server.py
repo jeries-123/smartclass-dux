@@ -5,7 +5,7 @@ import board
 import adafruit_dht
 import threading
 import time
-import requests  # Removed subprocess, no need for localtunnel
+import requests
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
@@ -77,16 +77,22 @@ def control():
                 print("Turning projector ON")
             elif action == 'off':
                 GPIO.output(PROJECTOR_PIN, GPIO.LOW)  # Projector off
-                print("Turning projector OFF")
 
         return jsonify({"status": "success"}), 200
 
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
-    temperature_c = dht_sensor.temperature
-    humidity = dht_sensor.humidity
-    return jsonify({"temperature": temperature_c, "humidity": humidity}), 200
+    try:
+        temperature_c = dht_sensor.temperature
+        humidity = dht_sensor.humidity
+        if temperature_c is None or humidity is None:
+            raise RuntimeError("Failed to read sensor data")
+        return jsonify({"temperature": temperature_c, "humidity": humidity}), 200
+    except RuntimeError as error:
+        return jsonify({"error": "DHT sensor read failed", "message": str(error)}), 500
+    except Exception as e:
+        return jsonify({"error": "Unexpected error", "message": str(e)}), 500
 
 if __name__ == '__main__':
-    # Run Flask app
+    # Run Flask app on all interfaces (0.0.0.0) and port 5000
     app.run(host='0.0.0.0', port=5000)
