@@ -10,12 +10,12 @@ import requests
 # Initialize the Flask app
 app = Flask(__name__)
 
-# Enable CORS for the specific origin
-CORS(app, resources={r"/*": {"origins": ["https://smartclass.dux.aiiot.center", "http://smartclass.dux.aiiot.center", "https://www.smartclass.dux.aiiot.center","http://www.smartclass.dux.aiiot.center"]}})
+# Enable CORS for multiple origins
+CORS(app, resources={r"/*": {"origins": ["https://smartclass.dux.aiiot.center", "http://smartclass.dux.aiiot.center", "https://www.smartclass.dux.aiiot.center", "http://www.smartclass.dux.aiiot.center"]}})
 
 RELAY_PIN = 27      # GPIO27 for lamp
 PROJECTOR_PIN = 18  # GPIO18 for projector
-DHT_PIN = board.D4   # GPIO4 for DHT11 sensor
+DHT_PIN = board.D4  # GPIO4 for DHT11 sensor
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -58,11 +58,18 @@ sensor_thread = threading.Thread(target=read_dht_sensor)
 sensor_thread.daemon = True
 sensor_thread.start()
 
+# Route for controlling devices (lamp, projector)
 @app.route('/control', methods=['POST', 'OPTIONS'])
 def control():
     if request.method == 'OPTIONS':
-        return jsonify({"status": "success"}), 200
+        # Handle preflight CORS request
+        response = jsonify({"status": "CORS preflight OK"})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response, 200
     elif request.method == 'POST':
+        # Handle actual POST request
         data = request.form
         device = data.get('device')
         action = data.get('action')
@@ -83,6 +90,7 @@ def control():
 
         return jsonify({"status": "success"}), 200
 
+# Route for getting sensor data (temperature and humidity)
 @app.route('/sensor', methods=['GET'])
 def get_sensor_data():
     try:
