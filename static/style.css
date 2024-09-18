@@ -1,0 +1,129 @@
+/* General styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #ffffff;
+    color: #822433;
+}
+
+.header img {
+    height: 50px;
+    margin-right: 20px;
+}
+
+.header h1 {
+    margin: 0 auto;
+    font-size: 24px;
+}
+
+.container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
+.component-box {
+    background-color: #822433;
+    color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    flex: 1 1 calc(33% - 40px);
+    box-sizing: border-box;
+    position: relative;
+}
+
+.component-box h2 {
+    margin-top: 0;
+}
+
+/* Switch styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+/* When the switch is ON */
+.switch.on .slider {
+    background-color: #2196F3;
+}
+
+.switch.on .slider:before {
+    transform: translateX(26px);
+}
+
+/* Button styles */
+button {
+    padding: 8px 16px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #1976D2;
+}
+
+#cameraControl button {
+    margin-top: 20px;
+    background-color: #FF5722;
+}
+
+#cameraControl button:hover {
+    background-color: #E64A19;
+}
+
+/* Camera styling */
+#cameraFeed {
+    width: 50%;
+    border: 2px solid #822433;
+    margin-top: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#cameraControl {
+    display: none;
+    margin-top: 20px;
+}
