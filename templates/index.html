@@ -40,7 +40,7 @@
         <!-- Camera Control -->
         <div class="component-box">
             <h2>Gesture Control Camera</h2>
-            <video id="video" autoplay></video>
+            <video id="video" autoplay playsinline></video>
             <button onclick="closeCamera()">Close Camera</button>
         </div>
     </div>
@@ -80,11 +80,15 @@
 
         // Access the camera for gesture control
         async function initCamera() {
-            const video = document.getElementById('video');
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
+            try {
+                const video = document.getElementById('video');
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
 
-            // Add gesture detection logic here if needed
+                // Add gesture detection logic here if needed
+            } catch (error) {
+                console.error('Error accessing the camera:', error);
+            }
         }
 
         // Close the camera feed
