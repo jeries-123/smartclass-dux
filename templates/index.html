@@ -19,7 +19,6 @@
             <label class="switch" id="lampSwitch" onclick="toggleSwitch('lamp', this)">
                 <span class="slider"></span>
             </label>
-            <button onclick="toggleCamera('lamp')">Control by Hand</button>
         </div>
 
         <!-- Projector Control -->
@@ -28,7 +27,6 @@
             <label class="switch" id="projectorSwitch" onclick="toggleSwitch('projector', this)">
                 <span class="slider"></span>
             </label>
-            <button onclick="toggleCamera('projector')">Control by Hand</button>
         </div>
 
         <!-- AC Control -->
@@ -39,52 +37,23 @@
             </label>
         </div>
 
-        <!-- Temperature Display -->
+        <!-- Camera Control -->
         <div class="component-box">
-            <h2>Temperature</h2>
-            <div id="temperatureDisplay">Loading...</div>
+            <h2>Gesture Control Camera</h2>
+            <video id="video" autoplay></video>
+            <button onclick="closeCamera()">Close Camera</button>
         </div>
-
-        <!-- Humidity Display -->
-        <div class="component-box">
-            <h2>Humidity</h2>
-            <div id="humidityDisplay">Loading...</div>
-        </div>
-    </div>
-
-    <!-- Camera Feed -->
-    <div id="cameraControl" style="display:none;">
-        <h2>Gesture Control Camera</h2>
-        <button onclick="closeCamera()">Close Camera</button>
-        <video id="cameraFeed" autoplay></video>
     </div>
 
     <script>
-        let currentCameraDevice = null;
-
-        // Access the camera from the browser
-        async function startCamera() {
-            const constraints = {
-                video: true
-            };
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                document.getElementById('cameraFeed').srcObject = stream;
-            } catch (error) {
-                console.error('Error accessing the camera:', error);
-            }
-        }
+        let currentDevice = null;
 
         // Toggle switch for devices
         function toggleSwitch(device, element) {
             let isOn = element.classList.contains('on');
             let action = isOn ? 'off' : 'on';
             
-            // Send control request to the API
             controlDevice(device, action);
-
-            // Toggle UI switch
             element.classList.toggle('on');
         }
 
@@ -109,57 +78,27 @@
             });
         }
 
-        // Toggle camera for gesture control
-        function toggleCamera(device) {
-            if (currentCameraDevice === device) {
-                closeCamera();
-            } else {
-                startCamera();  // Start the browser camera
-                document.getElementById('cameraControl').style.display = 'block';
-                currentCameraDevice = device;
-            }
+        // Access the camera for gesture control
+        async function initCamera() {
+            const video = document.getElementById('video');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+
+            // Add gesture detection logic here if needed
         }
 
         // Close the camera feed
         function closeCamera() {
-            document.getElementById('cameraFeed').srcObject = null;
-            document.getElementById('cameraControl').style.display = 'none';
-            currentCameraDevice = null;
+            const video = document.getElementById('video');
+            const stream = video.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.srcObject = null;
         }
 
-        function updateSensors() {
-            // Fetch temperature and humidity from the control API
-            fetch('https://smartclass.loca.lt/control', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    'action': 'get_sensor_data'  // Custom action to fetch sensor data
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.temperature && data.humidity) {
-                    document.getElementById('temperatureDisplay').textContent = `${data.temperature} °C`;
-                    document.getElementById('humidityDisplay').textContent = `${data.humidity} %`;
-                } else {
-                    document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
-                    document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching sensor data:', error);
-                document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
-                document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
-            });
-        }
-
-        // Fetch sensor data every 5 seconds
-        setInterval(updateSensors, 5000);
-
-        // Initial call to update sensors
-        updateSensors();
+        // Initialize the camera on page load
+        window.onload = initCamera;
     </script>
 </body>
 </html>
