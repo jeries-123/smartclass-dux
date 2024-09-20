@@ -46,13 +46,10 @@
     </div>
 
     <script>
-        let currentDevice = null;
-
         // Toggle switch for devices
         function toggleSwitch(device, element) {
             let isOn = element.classList.contains('on');
             let action = isOn ? 'off' : 'on';
-            
             controlDevice(device, action);
             element.classList.toggle('on');
         }
@@ -82,10 +79,8 @@
         async function initCamera() {
             try {
                 const video = document.getElementById('video');
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
-
-                // Add gesture detection logic here if needed
             } catch (error) {
                 console.error('Error accessing the camera:', error);
             }
