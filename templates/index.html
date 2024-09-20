@@ -83,6 +83,7 @@
                 video.srcObject = stream;
             } catch (error) {
                 console.error('Error accessing the camera:', error);
+                alert('Unable to access the camera. Please check your browser settings.');
             }
         }
 
