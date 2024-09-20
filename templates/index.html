@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+
+    <meta charset="UTF-8"><samp></samp>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Classroom by Dux</title>
     <link rel="stylesheet" href="/static/style.css">
@@ -56,7 +57,7 @@
     <div id="cameraControl">
         <h2>Gesture Control Camera</h2>
         <button onclick="closeCamera()">Close Camera</button>
-        <img id="cameraFeed">
+        <video id="cameraFeed" autoplay></video>
     </div>
 
     <script>
@@ -95,20 +96,38 @@
             });
         }
 
-        // Toggle camera for gesture control
+        // Toggle camera for gesture control (now using browser's camera)
         function toggleCamera(device) {
-            if (currentCameraDevice === device) {
+            const video = document.getElementById('cameraFeed');
+
+            // If a camera is already active, stop it
+            if (currentCameraDevice) {
                 closeCamera();
             } else {
-                document.getElementById('cameraFeed').src = `/video_feed/${device}`;
-                document.getElementById('cameraControl').style.display = 'block';
-                currentCameraDevice = device;
+                // Access the user's camera via browser API
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        video.srcObject = stream;
+                        document.getElementById('cameraControl').style.display = 'block';
+                        currentCameraDevice = device;
+                    })
+                    .catch(err => {
+                        console.error('Error accessing camera:', err);
+                    });
             }
         }
 
         // Close the camera feed
         function closeCamera() {
-            document.getElementById('cameraFeed').src = '';
+            const video = document.getElementById('cameraFeed');
+            if (video.srcObject) {
+                // Stop all video tracks
+                const stream = video.srcObject;
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+
+            video.srcObject = null;
             document.getElementById('cameraControl').style.display = 'none';
             currentCameraDevice = null;
         }
