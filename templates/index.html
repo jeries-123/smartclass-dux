@@ -53,7 +53,7 @@
     </div>
 
     <!-- Camera Feed -->
-    <div id="cameraControl">
+    <div id="cameraControl" style="display:none;">
         <h2>Gesture Control Camera</h2>
         <button onclick="closeCamera()">Close Camera</button>
         <video id="cameraFeed" autoplay></video>
@@ -61,6 +61,20 @@
 
     <script>
         let currentCameraDevice = null;
+
+        // Access the camera from the browser
+        async function startCamera() {
+            const constraints = {
+                video: true
+            };
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('cameraFeed').srcObject = stream;
+            } catch (error) {
+                console.error('Error accessing the camera:', error);
+            }
+        }
 
         // Toggle switch for devices
         function toggleSwitch(device, element) {
@@ -95,38 +109,20 @@
             });
         }
 
-        // Toggle camera for gesture control (now using browser's camera)
+        // Toggle camera for gesture control
         function toggleCamera(device) {
-            const video = document.getElementById('cameraFeed');
-
-            // If a camera is already active, stop it
-            if (currentCameraDevice) {
+            if (currentCameraDevice === device) {
                 closeCamera();
             } else {
-                // Access the user's camera via browser API
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(stream => {
-                        video.srcObject = stream;
-                        document.getElementById('cameraControl').style.display = 'block';
-                        currentCameraDevice = device;
-                    })
-                    .catch(err => {
-                        console.error('Error accessing camera:', err);
-                    });
+                startCamera();  // Start the browser camera
+                document.getElementById('cameraControl').style.display = 'block';
+                currentCameraDevice = device;
             }
         }
 
         // Close the camera feed
         function closeCamera() {
-            const video = document.getElementById('cameraFeed');
-            if (video.srcObject) {
-                // Stop all video tracks
-                const stream = video.srcObject;
-                const tracks = stream.getTracks();
-                tracks.forEach(track => track.stop());
-            }
-
-            video.srcObject = null;
+            document.getElementById('cameraFeed').srcObject = null;
             document.getElementById('cameraControl').style.display = 'none';
             currentCameraDevice = null;
         }
