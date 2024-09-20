@@ -53,10 +53,10 @@
     </div>
 
     <!-- Camera Feed -->
-    <div id="cameraControl" style="display: none;">
+    <div id="cameraControl">
         <h2>Gesture Control Camera</h2>
         <button onclick="closeCamera()">Close Camera</button>
-        <video id="video" autoplay></video>
+        <img id="cameraFeed">
     </div>
 
     <script>
@@ -96,58 +96,49 @@
         }
 
         // Toggle camera for gesture control
-        async function toggleCamera(device) {
+        function toggleCamera(device) {
             if (currentCameraDevice === device) {
                 closeCamera();
             } else {
-                await initCamera();
+                document.getElementById('cameraFeed').src = `/video_feed/${device}`;
                 document.getElementById('cameraControl').style.display = 'block';
                 currentCameraDevice = device;
             }
         }
 
-        // Initialize camera access
-        async function initCamera() {
-            try {
-                const video = document.getElementById('video');
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-            } catch (error) {
-                console.error('Error accessing the camera:', error);
-                alert('Unable to access the camera. Please check your browser settings.');
-            }
-        }
-
         // Close the camera feed
         function closeCamera() {
-            const video = document.getElementById('video');
-            const stream = video.srcObject;
-            if (stream) {
-                const tracks = stream.getTracks();
-                tracks.forEach(track => track.stop());
-            }
-            video.srcObject = null;
+            document.getElementById('cameraFeed').src = '';
             document.getElementById('cameraControl').style.display = 'none';
             currentCameraDevice = null;
         }
 
         function updateSensors() {
-            fetch('/sensor_data')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.temperature && data.humidity) {
-                        document.getElementById('temperatureDisplay').textContent = `${data.temperature} °C`;
-                        document.getElementById('humidityDisplay').textContent = `${data.humidity} %`;
-                    } else {
-                        document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
-                        document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
-                    }
+            // Fetch temperature and humidity from the control API
+            fetch('https://smartclass.loca.lt/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'action': 'get_sensor_data'  // Custom action to fetch sensor data
                 })
-                .catch(error => {
-                    console.error('Error fetching sensor data:', error);
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.temperature && data.humidity) {
+                    document.getElementById('temperatureDisplay').textContent = `${data.temperature} °C`;
+                    document.getElementById('humidityDisplay').textContent = `${data.humidity} %`;
+                } else {
                     document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
                     document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching sensor data:', error);
+                document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
+                document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
+            });
         }
 
         // Fetch sensor data every 5 seconds
