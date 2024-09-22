@@ -50,13 +50,11 @@ def control_device():
         return jsonify({"status": "success", "device": device, "action": action})
     else:
         return jsonify({"status": "error", "message": "Invalid device"}), 400
-
-# Route to stream video with hand detection for lamp and projector control
 @app.route('/video_feed/<device>')
 def video_feed(device):
-    if device not in devices:
-        return jsonify({"error": "Invalid device"}), 404
     return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 
 # Function to capture video and detect hands for lamp or projector control
 def generate_frames(device):
