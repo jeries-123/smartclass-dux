@@ -25,20 +25,17 @@ devices = {
 def index():
     return render_template('index.html')
 
-# API to fetch sensor data (temperature & humidity) from the remote API
+# API to fetch sensor data (temperature & humidity)
 @app.route('/sensor_data', methods=['GET'])
 def get_sensor_data():
     try:
-        # Fetch temperature and humidity data from the remote API
         url = 'https://smartclass.serveo.net/sensor_data'
         response = requests.get(url)
         if response.status_code == 200:
             return jsonify(response.json())
         else:
-            print(f"Error: Failed to fetch sensor data, status code: {response.status_code}")
             return jsonify({"error": "Failed to fetch sensor data"}), response.status_code
     except Exception as e:
-        print(f"Error: Unable to reach the sensor data API: {str(e)}")
         return jsonify({"error": "Unable to reach the sensor data API"}), 502
 
 # API to control devices via switch
@@ -49,19 +46,19 @@ def control_device():
     
     if device in devices:
         devices[device] = action
-        print(f"Device '{device}' set to '{action}'")
-        # Send control request to the remote API (for actual control)
         send_control_request(device, action)
         return jsonify({"status": "success", "device": device, "action": action})
     else:
         return jsonify({"status": "error", "message": "Invalid device"}), 400
 
-# Route to stream video with hand detection for lamp and projector control
+# Route to stream video with hand detection
 @app.route('/video_feed/<device>')
 def video_feed(device):
+    if device not in devices:
+        return jsonify({"error": "Invalid device"}), 404  # Ensure device is valid
     return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Function to capture video and detect hands for lamp or projector control
+# Function to capture video and detect hands
 def generate_frames(device):
     global last_gesture
 
@@ -76,54 +73,39 @@ def generate_frames(device):
         if not success:
             break
         else:
-            # Convert the frame to RGB for Mediapipe processing
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Process the frame with Mediapipe Hands
             result = hands.process(rgb_frame)
 
             if result.multi_hand_landmarks:
                 for hand_landmarks in result.multi_hand_landmarks:
                     mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                    # Detect gesture: check thumb and index tip positions for "on" or "off"
                     thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
                     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-
-                    # Determine gesture
                     gesture = "off" if thumb_tip.y > index_tip.y else "on"
 
-                    # Only control device (lamp or projector) if the gesture changes
                     if gesture != last_gesture:
-                        print(f"Gesture recognized for {device}: {gesture}")
-                        send_control_request(device, gesture)  # Send control request to API
+                        send_control_request(device, gesture)  # Send control request
                         last_gesture = gesture
 
-            # Encode the frame for streaming to the web
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
-
-            # Yield the frame to be displayed in the browser
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-    # Release the video capture
     cap.release()
 
-# Function to send device control request to the remote API
+# Function to send device control request
 def send_control_request(device, action):
     try:
-        # Sending a POST request to the remote control API
         url = 'https://smartclass.serveo.net/control'
         response = requests.post(url, data={'device': device, 'action': action})
-        
         if response.status_code == 200:
             print(f"Device '{device}' set to '{action}' via API")
         else:
             print(f"Error: Unable to set '{device}' to '{action}' (status: {response.status_code})")
     except Exception as e:
         print(f"Error sending control request: {str(e)}")
-
 
 if __name__ == '__main__':
     app.run(debug=True)
