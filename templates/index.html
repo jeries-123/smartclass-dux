@@ -96,26 +96,27 @@
 
         // Toggle camera for gesture control
         function toggleCamera() {
-            if (currentCameraStream) {
-                closeCamera();
-            } else {
-                // Request access to the user's camera
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(function (stream) {
-                        const videoElement = document.getElementById('cameraFeed');
-                        videoElement.srcObject = stream; // Set the video source to the camera feed
-                        document.getElementById('cameraControl').style.display = 'block';
-                        currentCameraStream = stream; // Store the camera stream to manage it
-                    })
-                    .catch(function (error) {
-                        console.error("Camera access denied or unavailable:", error);
-                    });
-                } else {
-                    console.error("getUserMedia not supported by this browser.");
-                }
-            }
+    if (currentCameraStream) {
+        closeCamera();
+    } else {
+        // Check if the browser supports mediaDevices and getUserMedia
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                const videoElement = document.getElementById('cameraFeed');
+                videoElement.srcObject = stream; // Set the video source to the camera feed
+                document.getElementById('cameraControl').style.display = 'block';
+                currentCameraStream = stream; // Store the camera stream to manage it
+            })
+            .catch(function (error) {
+                console.error("Camera access denied or unavailable:", error);
+                alert("Camera access is denied or not available. Please check your browser settings.");
+            });
+        } else {
+            alert("Your browser does not support camera access. Please update your browser or try a different one.");
         }
+    }
+}
 
         // Close the camera feed
         function closeCamera() {
