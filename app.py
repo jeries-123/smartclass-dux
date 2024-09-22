@@ -25,7 +25,7 @@ devices = {
 def index():
     return render_template('index.html')
 
-# API to fetch sensor data (temperature & humidity)
+# API to fetch sensor data (temperature & humidity) from the remote API
 @app.route('/sensor_data', methods=['GET'])
 def get_sensor_data():
     try:
@@ -51,14 +51,14 @@ def control_device():
     else:
         return jsonify({"status": "error", "message": "Invalid device"}), 400
 
-# Route to stream video with hand detection
+# Route to stream video with hand detection for lamp and projector control
 @app.route('/video_feed/<device>')
 def video_feed(device):
     if device not in devices:
-        return jsonify({"error": "Invalid device"}), 404  # Ensure device is valid
+        return jsonify({"error": "Invalid device"}), 404
     return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Function to capture video and detect hands
+# Function to capture video and detect hands for lamp or projector control
 def generate_frames(device):
     global last_gesture
 
@@ -82,10 +82,11 @@ def generate_frames(device):
 
                     thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
                     index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+
                     gesture = "off" if thumb_tip.y > index_tip.y else "on"
 
                     if gesture != last_gesture:
-                        send_control_request(device, gesture)  # Send control request
+                        send_control_request(device, gesture)
                         last_gesture = gesture
 
             ret, buffer = cv2.imencode('.jpg', frame)
@@ -95,11 +96,12 @@ def generate_frames(device):
 
     cap.release()
 
-# Function to send device control request
+# Function to send device control request to the remote API
 def send_control_request(device, action):
     try:
         url = 'https://smartclass.serveo.net/control'
         response = requests.post(url, data={'device': device, 'action': action})
+        
         if response.status_code == 200:
             print(f"Device '{device}' set to '{action}' via API")
         else:
