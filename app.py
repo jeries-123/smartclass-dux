@@ -30,7 +30,7 @@ def index():
 def get_sensor_data():
     try:
         # Fetch temperature and humidity data from the remote API
-        url = 'https://smartclass.loca.lt/sensor_data'
+        url = 'https://smartclass.serveo.net/sensor_data'
         response = requests.get(url)
         if response.status_code == 200:
             return jsonify(response.json())
@@ -114,7 +114,7 @@ def generate_frames(device):
 def send_control_request(device, action):
     try:
         # Sending a POST request to the remote control API
-        url = 'https://smartclass.loca.lt/control'
+        url = 'https://smartclass.serveo.net/control'
         response = requests.post(url, data={'device': device, 'action': action})
         
         if response.status_code == 200:

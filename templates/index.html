@@ -19,7 +19,7 @@
             <label class="switch" id="lampSwitch" onclick="toggleSwitch('lamp', this)">
                 <span class="slider"></span>
             </label>
-            <button onclick="toggleCamera('lamp')">Control by Hand</button>
+            <button onclick="toggleCamera()">Control by Hand</button>
         </div>
 
         <!-- Projector Control -->
@@ -28,7 +28,6 @@
             <label class="switch" id="projectorSwitch" onclick="toggleSwitch('projector', this)">
                 <span class="slider"></span>
             </label>
-            <button onclick="toggleCamera('projector')">Control by Hand</button>
         </div>
 
         <!-- AC Control -->
@@ -53,14 +52,14 @@
     </div>
 
     <!-- Camera Feed -->
-    <div id="cameraControl">
+    <div id="cameraControl" style="display: none;">
         <h2>Gesture Control Camera</h2>
         <button onclick="closeCamera()">Close Camera</button>
-        <img id="cameraFeed">
+        <video id="cameraFeed" autoplay playsinline></video>
     </div>
 
     <script>
-        let currentCameraDevice = null;
+        let currentCameraStream = null;
 
         // Toggle switch for devices
         function toggleSwitch(device, element) {
@@ -96,26 +95,46 @@
         }
 
         // Toggle camera for gesture control
-        function toggleCamera(device) {
-            if (currentCameraDevice === device) {
+        function toggleCamera() {
+            if (currentCameraStream) {
                 closeCamera();
             } else {
-                document.getElementById('cameraFeed').src = `/video_feed/${device}`;
-                document.getElementById('cameraControl').style.display = 'block';
-                currentCameraDevice = device;
+                // Request access to the user's camera
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function (stream) {
+                        const videoElement = document.getElementById('cameraFeed');
+                        videoElement.srcObject = stream; // Set the video source to the camera feed
+                        document.getElementById('cameraControl').style.display = 'block';
+                        currentCameraStream = stream; // Store the camera stream to manage it
+                    })
+                    .catch(function (error) {
+                        console.error("Camera access denied or unavailable:", error);
+                    });
+                } else {
+                    console.error("getUserMedia not supported by this browser.");
+                }
             }
         }
 
         // Close the camera feed
         function closeCamera() {
-            document.getElementById('cameraFeed').src = '';
+            const videoElement = document.getElementById('cameraFeed');
+            const stream = currentCameraStream;
+
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop()); // Stop the camera tracks
+            }
+
+            videoElement.srcObject = null;
             document.getElementById('cameraControl').style.display = 'none';
-            currentCameraDevice = null;
+            currentCameraStream = null; // Reset the camera stream
         }
 
         function updateSensors() {
             // Fetch temperature and humidity from the control API
-            fetch('https://smartclass.loca.lt/control', {
+            fetch('/control', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
