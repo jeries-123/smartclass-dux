@@ -96,15 +96,31 @@
         }
 
         // Toggle camera for gesture control
-        function toggleCamera(device) {
-            if (currentCameraDevice === device) {
-                closeCamera();
-            } else {
-                document.getElementById('cameraFeed').src = `/video_feed/${device}`;
-                document.getElementById('cameraControl').style.display = 'block';
-                currentCameraDevice = device;
-            }
-        }
+      // Toggle camera for gesture control
+function toggleCamera(device) {
+    const cameraFeed = document.getElementById('cameraFeed');
+    const cameraControl = document.getElementById('cameraControl');
+
+    if (currentCameraDevice === device) {
+        closeCamera();
+    } else {
+        // Attempt to load the camera feed for the selected device
+        const videoUrl = `/video_feed/${device}`;
+        console.log(`Attempting to load video feed from: ${videoUrl}`);
+
+        // Set the src of the image to the video feed URL
+        cameraFeed.src = videoUrl;
+        
+        // Check if the feed loads
+        cameraFeed.onerror = function() {
+            console.error(`Failed to load video feed from: ${videoUrl}`);
+            alert(`Failed to load video feed for ${device}. Please try again.`);
+        };
+
+        cameraControl.style.display = 'block';
+        currentCameraDevice = device;
+    }
+}
 
         // Close the camera feed
         function closeCamera() {
