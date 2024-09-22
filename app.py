@@ -2,8 +2,10 @@ import cv2
 import mediapipe as mp
 import requests
 from flask import Flask, render_template, Response, jsonify, request
+from flask_cors import CORS  # Enable CORS
 
 app = Flask(__name__)
+CORS(app)  # Allow Cross-Origin requests
 
 # For Mediapipe hand detection
 mp_hands = mp.solutions.hands
@@ -30,7 +32,7 @@ def index():
 def get_sensor_data():
     try:
         # Fetch temperature and humidity data from the remote API
-        url = 'https://smartclass.serveo.net/sensor_data'
+        url = 'https://smartclass.serveo.net/sensor_data'  # Ensure the URL is correct
         response = requests.get(url)
         if response.status_code == 200:
             return jsonify(response.json())
@@ -59,7 +61,12 @@ def control_device():
 # Route to stream video with hand detection for lamp and projector control
 @app.route('/video_feed/<device>')
 def video_feed(device):
-    return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if device in devices:
+        print(f"Video feed accessed for: {device}")  # Log the device being accessed
+        return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        print(f"Invalid device requested for video feed: {device}")
+        return jsonify({"status": "error", "message": "Invalid device for video feed"}), 400
 
 # Function to capture video and detect hands for lamp or projector control
 def generate_frames(device):
@@ -74,6 +81,7 @@ def generate_frames(device):
     while True:
         success, frame = cap.read()
         if not success:
+            print("Error: Failed to read frame from camera.")
             break
         else:
             # Convert the frame to RGB for Mediapipe processing
@@ -126,4 +134,4 @@ def send_control_request(device, action):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')  # Use 0.0.0.0 to allow external access
