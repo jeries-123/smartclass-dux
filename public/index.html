@@ -105,7 +105,7 @@ function toggleCamera(device) {
         closeCamera();
     } else {
         // Attempt to load the camera feed for the selected device
-        const videoUrl = `/video_feed/${device}`;
+        const videoUrl = `http://198.187.28.245:5000/video_feed/lamp`;
         console.log(`Attempting to load video feed from: ${videoUrl}`);
 
         // Set the src of the image to the video feed URL
