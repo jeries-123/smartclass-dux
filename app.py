@@ -51,7 +51,7 @@ def control_device():
     else:
         return jsonify({"status": "error", "message": "Invalid device"}), 400
 
-@app.route('/video_feed/<device>')
+@app.route('/video_feed/lamp')
 def video_feed(device):
     return Response(generate_frames(device), mimetype='multipart/x-mixed-replace; boundary=frame')
 
