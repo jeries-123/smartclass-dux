@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Classroom by Dux</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <!-- <script src="videoStream.js"></script> -->
+    <div class="header">
+        <img src="/static/assets/RCAIoT_logo.png" alt="Company Logo">
+        <h1>Smart Classroom by Dux</h1>
+    </div>
+
+    <div class="container">
+        <!-- Lamp Control -->
+        <div class="component-box">
+            <h2>Lamp</h2>
+            <label class="switch" id="lampSwitch" onclick="toggleSwitch('lamp', this)">
+                <span class="slider"></span>
+            </label>
+            <button onclick="toggleCamera('lamp')">Control by Hand</button>
+        </div>
+
+        <!-- Projector Control -->
+        <div class="component-box">
+            <h2>Projector</h2>
+            <label class="switch" id="projectorSwitch" onclick="toggleSwitch('projector', this)">
+                <span class="slider"></span>
+            </label>
+            <button onclick="toggleCamera('projector')">Control by Hand</button>
+        </div>
+
+        <!-- Screen Sharing Control -->
+        <div class="component-box">
+            <h2>Screen Sharing</h2>
+            <button id="startSharingScreen" onclick="startScreenSharing()">Start Sharing Screen</button>
+            <button id="stopSharingScreen" onclick="stopScreenSharing()" style="display:none;">Stop Sharing Screen</button>
+        </div>
+
+        <!-- AC Control -->
+        <div class="component-box">
+            <h2>AC</h2>
+            <label class="switch" id="acSwitch" onclick="toggleSwitch('ac', this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <!-- Temperature Display -->
+        <div class="component-box">
+            <h2>Temperature</h2>
+            <div id="temperatureDisplay">Loading...</div>
+        </div>
+
+        <!-- Humidity Display -->
+        <div class="component-box">
+            <h2>Humidity</h2>
+            <div id="humidityDisplay">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Camera Feed -->
+    <div id="cameraControl">
+        <h2>Gesture Control Camera</h2>
+        <button onclick="closeCamera()">Close Camera</button>
+        <img id="cameraFeed">
+    </div>
+
+    <script>
+        let currentCameraDevice = null;
+        const socket = new WebSocket('ws://192.168.254.6:8765/'); // Update with actual WebSocket server URL
+
+        // Toggle switch for devices
+        function toggleSwitch(device, element) {
+            let isOn = element.classList.contains('on');
+            let action = isOn ? 'off' : 'on';
+            
+            // Send control request to the API
+            controlDevice(device, action);
+
+            // Toggle UI switch
+            element.classList.toggle('on');
+        }
+
+        // Control device function
+        function controlDevice(device, action) {
+            fetch('https://smartclass.serveo.net/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'device': device,
+                    'action': action
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(`${device} is now ${action}`);
+            })
+            .catch(error => {
+                console.error('Error sending control request:', error);
+            });
+        }
+
+        // Toggle camera for gesture control
+        function toggleCamera(device) {
+            const cameraFeed = document.getElementById('cameraFeed');
+            const cameraControl = document.getElementById('cameraControl');
+
+            if (currentCameraDevice === device) {
+                closeCamera();
+            } else {
+                // Dynamically generate the video URL based on the device
+                const videoUrl = `http://198.187.28.245:5000/video_feed/${device}`;
+                console.log(`Attempting to load video feed from: ${videoUrl}`);
+
+                // Set the src of the image to the video feed URL
+                cameraFeed.src = videoUrl;
+
+                // Check if the feed loads
+                cameraFeed.onerror = function() {
+                    console.error(`Failed to load video feed from: ${videoUrl}`);
+                    alert(`Failed to load video feed for ${device}. Please try again.`);
+                };
+
+                cameraControl.style.display = 'block';
+                currentCameraDevice = device;
+            }
+        }
+
+        // Close the camera feed
+        function closeCamera() {
+            document.getElementById('cameraFeed').src = '';
+            document.getElementById('cameraControl').style.display = 'none';
+            currentCameraDevice = null;
+        }
+
+        function updateSensors() {
+            // Fetch temperature and humidity from the control API
+            fetch('https://smartclass.serveo.net/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'action': 'get_sensor_data'  // Custom action to fetch sensor data
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.temperature && data.humidity) {
+                    document.getElementById('temperatureDisplay').textContent = `${data.temperature} °C`;
+                    document.getElementById('humidityDisplay').textContent = `${data.humidity} %`;
+                } else {
+                    document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
+                    document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching sensor data:', error);
+                document.getElementById('temperatureDisplay').textContent = 'Error loading temperature';
+                document.getElementById('humidityDisplay').textContent = 'Error loading humidity';
+            });
+        }
+
+        // Fetch sensor data every 5 seconds
+        setInterval(updateSensors, 5000);
+
+        // Initial call to update sensors
+        updateSensors();
+
+        // Start screen sharing functionality
+        function startScreenSharing() {
+            document.getElementById('startSharingScreen').style.display = 'none';
+            document.getElementById('stopSharingScreen').style.display = 'inline';
+
+            // Capturing the screen
+            navigator.mediaDevices.getDisplayMedia({ video: true })
+                .then(stream => {
+                    const videoElement = document.createElement('video');
+                    videoElement.srcObject = stream;
+                    videoElement.autoplay = true;
+                    document.body.appendChild(videoElement);
+
+                    // Start WebRTC connection
+                    const peerConnection = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                    });
+
+                    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+                    peerConnection.onicecandidate = ({ candidate }) => {
+                        if (candidate) {
+                            socket.send(JSON.stringify({ iceCandidate: candidate.toJSON() }));
+                        }
+                    };
+
+                    peerConnection.createOffer()
+                        .then(offer => peerConnection.setLocalDescription(offer))
+                        .then(() => {
+                            socket.send(JSON.stringify({
+                                type: 'offer',
+                                offer: peerConnection.localDescription
+                            }));
+                        });
+
+                    socket.onmessage = async (message) => {
+                        const data = JSON.parse(message.data);
+                        if (data.answer) {
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        } else if (data.iceCandidate) {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(data.iceCandidate));
+                        }
+                    };
+                })
+                .catch(err => console.error("Error sharing screen:", err));
+        }
+
+        // Stop screen sharing functionality
+        function stopScreenSharing() {
+            document.getElementById('startSharingScreen').style.display = 'inline';
+            document.getElementById('stopSharingScreen').style.display = 'none';
+            // Implement logic to stop screen sharing
+            console.log("Screen sharing stopped...");
+        }
+    </script>
+</body>
+</html>
