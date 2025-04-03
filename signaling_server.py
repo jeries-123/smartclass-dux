@@ -1,55 +1,38 @@
-import asyncio
-import websockets
-import json
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate
+const WebSocket = require('ws');
 
-# Function to handle WebRTC signaling
-async def handle_webrtc_connection(websocket, path):
-    peer_connection = RTCPeerConnection()
+const PORT = 8766;
+const wss = new WebSocket.Server({ port: PORT });
 
-    @peer_connection.on("icecandidate")
-    async def on_icecandidate(candidate):
-        if candidate:
-            await websocket.send(json.dumps({"iceCandidate": candidate.to_dict()}))
+wss.on('connection', (ws) => {
+    console.log('New client connected');
 
-    try:
-        while True:
-            message = await websocket.recv()
-            data = json.loads(message)
+    ws.on('message', (message) => {
+        console.log(`Received message: ${message}`);
 
-            # Handle the offer from the laptop
-            if "offer" in data:
-                offer = RTCSessionDescription(sdp=data["offer"]["sdp"], type=data["offer"]["type"])
-                await peer_connection.setRemoteDescription(offer)
-                answer = await peer_connection.createAnswer()
-                await peer_connection.setLocalDescription(answer)
-                await websocket.send(json.dumps({"answer": peer_connection.localDescription.to_dict()}))
+        // Parse the incoming message as JSON
+        let data;
+        try {  
+            data = JSON.parse(message);
+        } catch (err) {
+            console.error('Invalid JSON:', err);
+            return;
+        }
 
-            # Handle ICE candidates
-            if "iceCandidate" in data:
-                candidate = RTCIceCandidate(
-                    sdpMid=data["iceCandidate"]["sdpMid"],
-                    sdpMLineIndex=data["iceCandidate"]["sdpMLineIndex"],
-                    candidate=data["iceCandidate"]["candidate"]
-                )
-                await peer_connection.addIceCandidate(candidate)
+        // Broadcast the received message to all other clients
+        wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(data));
+            }
+        });
+    });
 
-            # Since this is for streaming to a browser, you don't need to display locally on the Raspberry Pi.
-            # The browser will handle displaying the video stream.
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
 
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        # Close the connection
-        await peer_connection.close()
+    ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+    });
+});
 
-# WebSocket server to receive WebRTC signaling
-async def start_signaling_server():
-    async with websockets.serve(handle_webrtc_connection, "0.0.0.0", 8765):
-        print("WebSocket server started at ws://0.0.0.0:8765")
-        await asyncio.Future()
-
-# Run WebSocket server
-asyncio.run(start_signaling_server())
-
-
+console.log(`WebSocket signaling server is running on ws://localhost:${PORT}`);
